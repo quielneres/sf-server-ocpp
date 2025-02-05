@@ -26,6 +26,11 @@ app.set('ocppServer', ocppServer);
 // ✅ Rotas REST API
 app.use('/api/chargers', chargersRouter);
 
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/wallet', require('./routes/wallet'));
+app.use('/api/cards', require('./routes/cards'));
+app.use('/api/cars', require('./routes/cars'));
+
 // ✅ Documentação Swagger
 swaggerDocs(app);
 
