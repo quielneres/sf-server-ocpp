@@ -10,12 +10,16 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.7.9",
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "mongoose": "^8.9.6",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.7",
     "morgan": "^1.10.0",
     "ocpp-rpc": "^2.2.0",
+    "pagarme": "^4.35.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0"
