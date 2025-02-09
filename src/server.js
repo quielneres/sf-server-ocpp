@@ -26,19 +26,26 @@ app.set('ocppServer', ocppServer);
 global.ocppClients = new Map();
 global.activeTransactions = new Map();
 
+
 // Rotas REST API
 // app.use('/api/chargers', chargersRouter);
 //
 // const chargingRoutes = require('./routes/charging');
 // app.use('/api/charging', chargingRoutes);
+
+const transactionRoutes = require('./routes/transactions');
+
 app.use('/api/auth', require('./routes/auth'));
 
 app.use('/api/chargers', require('./routes/chargers'));
+app.use('/api/transactions', transactionRoutes);
 
 app.use('/api/charging', require('./routes/charging'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/cards', require('./routes/cards'));
 app.use('/api/cars', require('./routes/cars'));
+
+
 
 //Documentação Swagger
 swaggerDocs(app);
