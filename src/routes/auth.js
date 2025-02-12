@@ -125,4 +125,48 @@ router.post('/login', async (req, res) => {
 });
 
 
+/**
+ * @swagger
+ * /api/auth/users:
+ *   get:
+ *     summary: Retorna a lista de todos os usuários
+ *     tags: [Usuários]
+ *     responses:
+ *       200:
+ *         description: Lista de usuários retornada com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     example: "João Silva"
+ *                   cpf:
+ *                     type: string
+ *                     example: "123.456.789-00"
+ *                   email:
+ *                     type: string
+ *                     example: "joao@email.com"
+ *                   phone:
+ *                     type: string
+ *                     example: "61999996666"
+ *       500:
+ *         description: Erro interno do servidor.
+ */
+router.get('/users', async (req, res) => {
+    try {
+        // Busca todos os usuários no banco de dados
+        const users = await User.find();
+
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Erro ao listar usuários:", error);
+        res.status(500).json({ message: "Erro ao listar usuários", error: error.message });
+    }
+});
+
+
 module.exports = router;
