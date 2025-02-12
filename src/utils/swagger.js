@@ -10,7 +10,7 @@ const options = {
             description: "API para gerenciamento de carregadores elétricos com OCPP",
         },
         servers: [
-            { url: "http://localhost:4000" }
+            { url: "https://sf-server-occp-env.up.railway.app" }
         ]
     },
     apis: ["./src/routes/*.js"] // Importa automaticamente a documentação das rotas
@@ -20,7 +20,7 @@ const swaggerSpec = swaggerJsdoc(options);
 
 function swaggerDocs(app) {
     app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-    console.log(`📄 Swagger UI disponível em http://localhost:4000/api-docs`);
+    console.log(`📄 Swagger UI disponível emhttps://sf-server-occp-env.up.railway.app/api-docs`);
 }
 
 module.exports = swaggerDocs;
