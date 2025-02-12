@@ -1,5 +1,6 @@
 const { RPCServer, createRPCError } = require('ocpp-rpc');
 const Charger = require('../models/Charger');
+const {handleMeterValues} = require("./handlers");
 
 class OCPPServer {
     constructor() {
@@ -112,6 +113,10 @@ class OCPPServer {
 
                 return { currentTime: new Date().toISOString() };
             });
+
+            client.handle('MeterValues', async (params) => await handleMeterValues(client, params));
+
+
 
             // ✅ Quando um carregador se desconecta
             client.on('close', async () => {

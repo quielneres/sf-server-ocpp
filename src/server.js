@@ -34,6 +34,7 @@ global.activeTransactions = new Map();
 app.use('/api/auth', require('./routes/auth'));
 
 app.use('/api/chargers', require('./routes/chargers'));
+app.use('/api/transactions', require('./routes/transactions'));
 
 app.use('/api/charging', require('./routes/charging'));
 app.use('/api/wallet', require('./routes/wallet'));
