@@ -4,8 +4,8 @@ const { handleMeterValues } = require("./handlers");
 
 class OCPPServer {
     constructor() {
-        // const port = process.env.OCPP_PORT || 3000;
-        const port = process.env.PORT || process.env.OCPP_PORT || 3000;
+        const port = process.env.OCPP_PORT || 3000;
+        // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
 
         this.server = new RPCServer({
             protocols: ['ocpp1.6'],
