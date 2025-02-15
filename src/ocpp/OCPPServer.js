@@ -4,7 +4,8 @@ const { handleMeterValues } = require("./handlers");
 
 class OCPPServer {
     constructor() {
-        const port = process.env.OCPP_PORT || 3000;
+        const port = process.env.PORT || 3000;
+
         // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
 
         this.server = new RPCServer({
@@ -131,9 +132,9 @@ class OCPPServer {
             });
         });
 
-        this.server.listen(port, '0.0.0.0')
-            .then(() => console.log(`🚀 Servidor OCPP rodando em ws://0.0.0.0:${port}`))
-            .catch(error => console.error(`❌ Erro ao iniciar o servidor OCPP: ${error.message}`));
+        this.server.listen(port, '0.0.0.0', () => {
+            console.log(`🚀 Servidor OCPP rodando em ws://0.0.0.0:${port}`);
+        });
 
     }
 }
