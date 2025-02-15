@@ -4,7 +4,8 @@ const { handleMeterValues } = require("./handlers");
 
 class OCPPServer {
     constructor() {
-        const port = process.env.PORT || 3000;
+        //const port = process.env.PORT || 3000;
+        const port = process.env.WS_PORT || process.env.PORT || 3001;
 
         // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
 
