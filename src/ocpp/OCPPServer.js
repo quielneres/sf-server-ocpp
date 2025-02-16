@@ -133,7 +133,7 @@ class OCPPServer {
             });
         });
 
-        this.server.listen(port, '8.8.8.8', () => {
+        this.server.listen(port, '0.0.0.0', () => {
             console.log(`🚀 Servidor OCPP rodando em wss://ws-solfort.up.railway.app:${port}`);
         });
 
