@@ -45,5 +45,5 @@ app.use('/api/cars', require('./routes/cars'));
 swaggerDocs(app);
 
 app.listen(PORT, "0.0.0.0",() => {
-    console.log(`API REST rodando em https://sf-server-occp-env.up.railway.app:${PORT}`);
+    console.log(`API REST rodando em https://api-solfort.up.railway.app/:${PORT}`);
 });
