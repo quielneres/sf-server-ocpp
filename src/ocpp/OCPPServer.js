@@ -1,6 +1,7 @@
 const { RPCServer } = require('ocpp-rpc');
 const Charger = require('../models/Charger');
 const { handleMeterValues } = require("./handlers");
+const amqp = require('amqplib');
 
 class OCPPServer {
     constructor() {
@@ -13,7 +14,7 @@ class OCPPServer {
             protocols: ['ocpp1.6'],
             strictMode: true
         });
-
+        this.initRabbitMQ(); // 🔹 Inicia conexão com o RabbitMQ
         this.chargers = new Map();
         global.ocppClients = new Map();
         global.activeTransactions = new Map();
@@ -114,7 +115,27 @@ class OCPPServer {
                 return { currentTime: new Date().toISOString() };
             });
 
-            client.handle('MeterValues', async (params) => await handleMeterValues(client, params));
+            // client.handle('MeterValues', async (params) => await handleMeterValues(client, params));
+
+
+            // client.handle('MeterValues', async ({ params }) => {
+            //     console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
+            //
+            //     const meterData = {
+            //         chargerId: client.identity,
+            //         timestamp: params.meterValue[0]?.timestamp || new Date().toISOString(),
+            //         values: params.meterValue[0]?.sampledValue || [],
+            //     };
+            //
+            //     this.sendToRabbitMQ(meterData); // 🔹 Envia para RabbitMQ
+            //     return {};
+            // });
+
+            client.handle('MeterValues', async ({ params }) => {
+                console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
+                this.publishToRabbitMQ(client.identity, params); // Envia os dados para RabbitMQ
+                return {};
+            });
 
             client.on('close', async () => {
                 console.info(`🔌 Conexão encerrada: ${client.identity}`);
@@ -137,6 +158,26 @@ class OCPPServer {
             console.log(`🚀 Servidor OCPP rodando em wss://ws-solfort.up.railway.app:${port}`);
         });
 
+    }
+
+    async initRabbitMQ() {
+        try {
+            this.rabbitConn = await amqp.connect( 'amqp://localhost');
+            this.rabbitChannel = await this.rabbitConn.createChannel();
+            await this.rabbitChannel.assertExchange('meter_values_exchange', 'direct', { durable: false });
+            console.log("✅ Conectado ao RabbitMQ");
+        } catch (error) {
+            console.error("❌ Erro ao conectar ao RabbitMQ:", error);
+        }
+    }
+
+    publishToRabbitMQ(chargerId, data) {
+        if (this.rabbitChannel) {
+            this.rabbitChannel.publish('meter_values_exchange', `charger.${chargerId}`, Buffer.from(JSON.stringify(data)));
+            console.info(`📤 Enviado para RabbitMQ (charger.${chargerId}):`, data);
+        } else {
+            console.error("❌ Canal RabbitMQ não inicializado.");
+        }
     }
 }
 
