@@ -1,0 +1,710 @@
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:49094) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49094) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+ Erro ao conectar no MongoDB: Error: querySrv ECONNREFUSED _mongodb._tcp.solfort.nr2nl.mongodb.net
+    at QueryReqWrap.onresolve [as oncomplete] (node:internal/dns/promises:293:17) {
+  errno: undefined,
+  code: 'ECONNREFUSED',
+  syscall: 'querySrv',
+  hostname: '_mongodb._tcp.solfort.nr2nl.mongodb.net'
+}
+✅ Conectado ao RabbitMQ
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:49460) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49460) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Preparing',
+  timestamp: '2022-01-28T12:04:27.114Z'
+}
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:52534) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52534) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+idTag
+idTag 65bd87a1e7b4e623a4f9
+🚀 StartTransaction de charger-01: {
+  connectorId: 1,
+  idTag: '65bd87a1e7b4e623a4f9',
+  meterStart: 0,
+  timestamp: '2022-01-28T12:07:50.068Z'
+}
+⚠️ StartTransaction sem transactionId recebido, gerando um: 84023
+📌 Transaction armazenada: charger-01 -> 84023
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Charging',
+  timestamp: '2022-01-28T12:07:50.070Z'
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:08:50.125Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:08:50.125Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:09:50.126Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:09:50.126Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:10:50.127Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:10:50.127Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:11:50.133Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:11:50.133Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:13:27.100Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:13:27.100Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:14:27.121Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:14:27.121Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:15:27.122Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:15:27.122Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:16:27.122Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:16:27.122Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:18:36.251Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:18:36.251Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:19:36.279Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:19:36.279Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:20:36.282Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:20:36.282Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:21:36.283Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:21:36.283Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:22:36.285Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:22:36.285Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:23:36.287Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:23:36.287Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:24:36.289Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:24:36.289Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:25:36.290Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:25:36.290Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:26:36.292Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:26:36.292Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:27:36.292Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:27:36.292Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:28:36.294Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:28:36.294Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:29:36.296Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:29:36.296Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:30:36.296Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:30:36.296Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:31:36.304Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:31:36.304Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:32:36.305Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:32:36.305Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:33:36.306Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:33:36.306Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:34:36.308Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:34:36.308Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:35:36.308Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:35:36.308Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:36:36.311Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:36:36.311Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:37:36.312Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:37:36.312Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:38:36.314Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:38:36.314Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:39:36.318Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T12:39:36.318Z', sampledValue: [Array] } ]
+}
+🔌 Conexão encerrada: charger-01
+🔌 Carregador conectado: charger-01
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T13:26:29.939Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 84023,
+  meterValue: [ { timestamp: '2022-01-28T13:26:29.939Z', sampledValue: [Array] } ]
+}
+🛑 StopTransaction de charger-01: {
+  meterStop: 0,
+  timestamp: '2022-01-28T13:27:08.379Z',
+  transactionId: 84023,
+  reason: 'EVDisconnected'
+}
+🗑 Transaction removida: charger-01
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Available',
+  timestamp: '2022-01-28T13:27:08.381Z'
+}
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Preparing',
+  timestamp: '2022-01-28T13:27:08.792Z'
+}
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Available',
+  timestamp: '2022-01-28T13:27:09.142Z'
+}
+🔌 Carregador conectado: NBK0000324020022
+📡 BootNotification de NBK0000324020022: {
+  chargePointVendor: 'GROWATT',
+  chargePointModel: 'THOR-40S-C',
+  chargePointSerialNumber: 'NBK0000324020022',
+  firmwareVersion: 'THOR-40S-C-V2.2.1-231028-UU'
+}
+✅ Carregador atualizado/salvo: NBK0000324020022
+💓 Heartbeat recebido de NBK0000324020022
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Available',
+  timestamp: '2025-02-22T01:28:47.198Z',
+  vendorId: 'GROWATT'
+}
+🛑 StopTransaction de NBK0000324020022: {
+  idTag: 'C5A733892A5F41FEB47',
+  meterStop: 33640,
+  timestamp: '2025-02-22T01:20:35.579Z',
+  transactionId: 441601,
+  reason: 'Other',
+  transactionData: [ { timestamp: '2025-02-22T01:20:35.579Z', sampledValue: [Array] } ]
+}
+🗑 Transaction removida: NBK0000324020022
+idTag
+idTag 65bd87a1e7b4e623a4f9
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Preparing',
+  timestamp: '2025-02-22T01:30:31.066Z',
+  vendorId: 'GROWATT'
+}
+idTag
+idTag 65bd87a1e7b4e623a4f9
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Available',
+  timestamp: '2025-02-22T01:32:00.045Z',
+  vendorId: 'GROWATT'
+}
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Preparing',
+  timestamp: '2022-01-28T13:36:17.515Z'
+}
+idTag
+idTag 65bd87a1e7b4e623a4f9
+🚀 StartTransaction de charger-01: {
+  connectorId: 1,
+  idTag: '65bd87a1e7b4e623a4f9',
+  meterStart: 0,
+  timestamp: '2022-01-28T13:36:54.345Z'
+}
+⚠️ StartTransaction sem transactionId recebido, gerando um: 92882
+📌 Transaction armazenada: charger-01 -> 92882
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Charging',
+  timestamp: '2022-01-28T13:36:54.347Z'
+}
+💓 Heartbeat recebido de NBK0000324020022
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 92882,
+  meterValue: [ { timestamp: '2022-01-28T13:37:54.374Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 92882,
+  meterValue: [ { timestamp: '2022-01-28T13:37:54.374Z', sampledValue: [Array] } ]
+}
+⚡ MeterValues recebido de charger-01: {
+  connectorId: 1,
+  transactionId: 92882,
+  meterValue: [ { timestamp: '2022-01-28T13:38:54.395Z', sampledValue: [Array] } ]
+}
+📤 Enviado para RabbitMQ (charger.charger-01): {
+  connectorId: 1,
+  transactionId: 92882,
+  meterValue: [ { timestamp: '2022-01-28T13:38:54.395Z', sampledValue: [Array] } ]
+}
+🛑 StopTransaction de charger-01: {
+  meterStop: 0,
+  timestamp: '2022-01-28T13:39:22.871Z',
+  transactionId: 92882,
+  reason: 'EVDisconnected'
+}
+🗑 Transaction removida: charger-01
+🔔 StatusNotification de charger-01: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  status: 'Available',
+  timestamp: '2022-01-28T13:39:22.872Z'
+}
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:60867) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:60867) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+🔌 Carregador conectado: NBK0000324020022
+📡 BootNotification de NBK0000324020022: {
+  chargePointVendor: 'GROWATT',
+  chargePointModel: 'THOR-40S-C',
+  chargePointSerialNumber: 'NBK0000324020022',
+  firmwareVersion: 'THOR-40S-C-V2.2.1-231028-UU'
+}
+✅ Carregador atualizado/salvo: NBK0000324020022
+💓 Heartbeat recebido de NBK0000324020022
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Available',
+  timestamp: '2025-02-22T01:37:19.128Z',
+  vendorId: 'GROWATT'
+}
+idTag
+idTag 65bd87a1e7b4e623a4f9
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Preparing',
+  timestamp: '2025-02-22T01:38:04.171Z',
+  vendorId: 'GROWATT'
+}
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:62934) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:62934) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+🔌 Carregador conectado: charger-01
+ MongoDB conectado
+🔌 Carregador conectado: NBK0000324020022
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Available',
+  timestamp: '2025-02-22T01:47:10.315Z',
+  vendorId: 'GROWATT'
+}
+💓 Heartbeat recebido de NBK0000324020022
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:63119) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:63119) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:63313) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:63313) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+🔌 Carregador conectado: NBK0000324020022
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Available',
+  timestamp: '2025-02-22T01:56:55.679Z',
+  vendorId: 'GROWATT'
+}
+💓 Heartbeat recebido de NBK0000324020022
+🔌 Conexão encerrada: NBK0000324020022
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:65020) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65020) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+🔌 Carregador conectado: NBK0000324020022
+📡 BootNotification de NBK0000324020022: {
+  chargePointVendor: 'GROWATT',
+  chargePointModel: 'THOR-40S-C',
+  chargePointSerialNumber: 'NBK0000324020022',
+  firmwareVersion: 'THOR-40S-C-V2.2.1-231028-UU'
+}
+✅ Carregador atualizado/salvo: NBK0000324020022
+💓 Heartbeat recebido de NBK0000324020022
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Available',
+  timestamp: '2025-02-22T02:02:34.126Z',
+  vendorId: 'GROWATT'
+}
+idTag
+idTag 65bd87a1e7b4e623a4f9
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Preparing',
+  timestamp: '2025-02-22T02:03:02.362Z',
+  vendorId: 'GROWATT'
+}
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:66202) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:66202) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:66526) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:66526) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+ MongoDB conectado
+🔌 Carregador conectado: charger-01
+^C
+ezequiel@Ezequiels-MacBook-Pro sf-ocpp-server % npm start
+
+> sf-ocpp-server@1.0.0 start
+> node src/server.js
+
+📄 Swagger UI disponível em https://api-solfort.up.railway.app/api-docs
+(node:66769) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:66769) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+API REST rodando em https://api-solfort.up.railway.app/:4000
+✅ Conectado ao RabbitMQ
+🔌 Carregador conectado: NBK0000324020022
+📡 BootNotification de NBK0000324020022: {
+  chargePointVendor: 'GROWATT',
+  chargePointModel: 'THOR-40S-C',
+  chargePointSerialNumber: 'NBK0000324020022',
+  firmwareVersion: 'THOR-40S-C-V2.2.1-231028-UU'
+}
+ MongoDB conectado
+✅ Carregador atualizado/salvo: NBK0000324020022
+💓 Heartbeat recebido de NBK0000324020022
+🔔 StatusNotification de NBK0000324020022: {
+  connectorId: 1,
+  errorCode: 'NoError',
+  info: '',
+  status: 'Available',
+  timestamp: '2025-02-22T02:18:08.149Z',
+  vendorId: 'GROWATT'
+}
