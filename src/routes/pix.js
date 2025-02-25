@@ -92,6 +92,8 @@ router.get('/check-payment', async (req, res) => {
 
         const isPaid = await updateTransactionStatus(userId, transactionId);
 
+        console.log('isPaid', isPaid)
+
         if (isPaid) {
             res.json({ message: "Pagamento confirmado!", status: "paid" });
         } else {

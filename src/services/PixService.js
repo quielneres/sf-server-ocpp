@@ -2,8 +2,8 @@ const axios = require('axios');
 const {Buffer} = require("buffer");
 const Wallet = require('../models/Wallet');
 
-const API_BASE_URL = process.env.API_BASE_URL; // Ex: 'https://api.pagar.me/core/v5'
-const PAGARME_API_KEY = process.env.PAGARME_API_KEY; // Sua chave secreta
+const API_BASE_URL = process.env.API_BASE_URL;
+const PAGARME_API_KEY = process.env.PAGARME_API_KEY;
 
 /**
  * Gera uma ordem de pagamento via PIX usando a API do Pagar.me.
@@ -12,62 +12,14 @@ const PAGARME_API_KEY = process.env.PAGARME_API_KEY; // Sua chave secreta
  */
 const generatePix = async (payload) => {
     try {
-        // const response = await axios.post(
-        //     `${API_BASE_URL}/orders`,
-        //     payload,
-        //     {
-        //         headers: {
-        //             Authorization: 'Basic ' + Buffer.from(`${PAGARME_API_KEY}:`).toString('base64'),
-        //             'Content-Type': 'application/json'
-        //         }
-        //     }
-        // );
-
         const response = await axios.post(
             `${API_BASE_URL}/orders`,
-            {
-                "items": [
-                    {
-                        "amount": 2990,
-                        "description": "Chaveiro do Tesseract",
-                        "quantity": 1
-                    }
-                ],
-                "customer": {
-                    "name": "Tony Stark",
-                    "email": "avengerstark@ligadajustica.com.br",
-                    "type": "individual",
-                    "document": "01234567890",
-                    "phones": {
-                        "home_phone": {
-                            "country_code": "55",
-                            "number": "22180513",
-                            "area_code": "21"
-                        }
-                    }
-                },
-                "payments": [
-                    {
-                        "payment_method": "pix",
-                        "pix": {
-                            "expires_in": "52134613",
-                            "additional_information": [
-                                {
-                                    "name": "Quantidade",
-                                    "value": "2"
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
-            ,
+            payload,
             {
                 headers: {
-                    Authorization:
-                        'Basic ' + Buffer.from(`${PAGARME_API_KEY}:`).toString('base64'),
-                    'Content-Type': 'application/json',
-                },
+                    Authorization: 'Basic ' + Buffer.from(`${PAGARME_API_KEY}:`).toString('base64'),
+                    'Content-Type': 'application/json'
+                }
             }
         );
 

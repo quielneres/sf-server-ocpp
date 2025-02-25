@@ -32,7 +32,7 @@ global.activeTransactions = new Map();
 // const chargingRoutes = require('./routes/charging');
 // app.use('/api/charging', chargingRoutes);
 app.use('/api/auth', require('./routes/auth'));
-
+app.use('/api/user', require('./routes/userRoutes'));
 app.use('/api/chargers', require('./routes/chargers'));
 app.use('/api/transactions', require('./routes/transactions'));
 
