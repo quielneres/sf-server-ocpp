@@ -90,15 +90,14 @@ router.get('/check-payment', async (req, res) => {
             return res.status(400).json({ message: "Parâmetros ausentes" });
         }
 
-        const isPaid = await updateTransactionStatus(userId, transactionId);
+        const transactionDetail = await updateTransactionStatus(userId, transactionId);
 
-        console.log('isPaid', isPaid)
-
-        if (isPaid) {
-            res.json({ message: "Pagamento confirmado!", status: "paid" });
-        } else {
-            res.json({ message: "Pagamento ainda pendente.", status: "pending" });
-        }
+        res.json(
+            {
+                message: `Pagamento ${transactionDetail.status}!`,
+                status: transactionDetail.status,
+                data: transactionDetail.data
+            });
     } catch (error) {
         res.status(500).json({ message: "Erro ao verificar pagamento", error: error.message });
     }

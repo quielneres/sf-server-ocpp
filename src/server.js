@@ -38,7 +38,7 @@ app.use('/api/transactions', require('./routes/transactions'));
 
 app.use('/api/charging', require('./routes/charging'));
 app.use('/api/wallet', require('./routes/wallet'));
-app.use('/api/cards', require('./routes/cards'));
+app.use('/api/cards', require('./routes/cardRoutes'));
 app.use('/api/cars', require('./routes/cars'));
 app.use('/api/pix', require('./routes/pix'));
 

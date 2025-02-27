@@ -1,4 +1,6 @@
 const { generatePix } = require('../services/PixService');
+const User = require('../models/User');
+
 
 /**
  * Gera um pagamento via PIX para o usuário.
@@ -10,30 +12,38 @@ const pixGenerate = async (req, res) => {
         const { userId } = req.params;
         const { amount } = req.body;
 
-        // Validação básica
         if (!amount || amount <= 0) {
             return res.status(400).json({ message: "O valor deve ser maior que zero." });
         }
+        const user = await User.findOne({ _id : userId});
+
+        if (!user) {
+            return res.status(400).json({ message: "Problema ao pesquisar usuário." });
+        }
+
+        const phone = user.phone;
+        const areaCode = phone.slice(0, 2);
+        const number = phone.slice(2);
 
         // Monta o payload para a ordem de pagamento via PIX
         const payload = {
             items: [
                 {
                     amount: amount * 100, // Valor em centavos
-                    description: `Carregamento - ${userId}`,
+                    description: `Recarga Eletroposto`,
                     quantity: 1,
                 },
             ],
             customer: {
-                name: 'Cliente Teste',
-                email: 'cliente@email.com',
+                name: user.name,
+                email: user.email,
                 type: 'individual',
-                document: '111111111111', // Exemplo; substitua conforme necessário
+                document: user.cpf,
                 phones: {
                     home_phone: {
                         country_code: '55',
-                        number: '22180513',
-                        area_code: '21',
+                        number: number,
+                        area_code: areaCode,
                     },
                 },
             },
@@ -47,9 +57,8 @@ const pixGenerate = async (req, res) => {
             ],
         };
 
-        const result = await generatePix(payload);
+        const result = await generatePix(userId, amount, payload);
 
-        // return res.status(200).;
         res.json({ message: "QRCode gerado com sucesso", ...result });
     } catch (error) {
         console.error("Erro no PixController.pixGenerate:", error.response?.data || error.message);

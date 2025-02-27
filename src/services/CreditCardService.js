@@ -6,11 +6,11 @@ const API_BASE_URL = process.env.API_BASE_URL;
 const PAGARME_API_KEY = process.env.PAGARME_API_KEY;
 
 /**
- * Gera uma ordem de pagamento via PIX usando a API do Pagar.me.
+ * Gera uma ordem de pagamento via Cartão de cr'ditos usando a API do Pagar.me.
  * @param {object} payload - Os dados da ordem (amount, customer, etc.).
  * @returns {Promise<object>} - Retorna um objeto com o QR Code, valor formatado e data de expiração.
  */
-const generatePix = async (userId, amount, payload) => {
+const creditCardTransaction = async (payload) => {
     try {
         const response = await axios.post(
             `${API_BASE_URL}/orders`,
@@ -23,39 +23,9 @@ const generatePix = async (userId, amount, payload) => {
             }
         );
 
-        const charge = response.data.charges[0];
-        const transaction = charge.last_transaction;
-
-        // 🔹 Extrai os dados necessários
-        const transactionId = charge.id;
-        const qrCode = transaction.qr_code;
-        const paymentAmount = (charge.amount / 100).toFixed(2).replace('.', ',');
-        const expiration = new Date(transaction.expires_at).toLocaleString("pt-BR");
-
-        console.log(`✅ PIX Criado com sucesso. Transaction ID: ${transactionId}`);
-
-        // 🔹 Salva no banco de dados
-        let wallet = await Wallet.findOne({ userId });
-        if (!wallet) {
-            wallet = new Wallet({ userId, transactions: [] });
-        }
-
-
-        wallet.transactions.push({
-            transactionId,
-            amount,
-            type: 'deposit',
-            status: charge.status,
-            paymentMethod: 'pix'
-        });
-
-        await wallet.save();
-        console.log("💾 Transação salva no banco de dados.");
-
         return response.data.valueOf();
-
     } catch (error) {
-        console.error("Erro no PixService.generatePix:", error.response?.data || error.message);
+        console.error("Erro na transação:", error.response?.data || error.message);
         throw error;
     }
 };
@@ -76,6 +46,11 @@ const checkTransactionStatus = async (transactionId) => {
                 }
             }
         );
+
+        // console.log('detalhes da transacao', response.data)
+
+        const status = response.data.status; // Ex: "pending", "paid", "failed"
+        console.log(`🔍 Status da transação ${transactionId}: ${status}`);
 
         return {status: status, data: response.data};
     } catch (error) {
@@ -119,5 +94,5 @@ const updateTransactionStatus = async (userId, transactionId) => {
     }
 };
 
-module.exports = {generatePix, checkTransactionStatus, updateTransactionStatus };
+module.exports = {creditCardTransaction, checkTransactionStatus, updateTransactionStatus };
 
