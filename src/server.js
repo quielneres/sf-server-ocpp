@@ -32,17 +32,21 @@ global.activeTransactions = new Map();
 // const chargingRoutes = require('./routes/charging');
 // app.use('/api/charging', chargingRoutes);
 app.use('/api/auth', require('./routes/auth'));
-
+app.use('/api/user', require('./routes/userRoutes'));
 app.use('/api/chargers', require('./routes/chargers'));
 app.use('/api/transactions', require('./routes/transactions'));
 
 app.use('/api/charging', require('./routes/charging'));
 app.use('/api/wallet', require('./routes/wallet'));
-app.use('/api/cards', require('./routes/cards'));
+app.use('/api/cards', require('./routes/cardRoutes'));
 app.use('/api/cars', require('./routes/cars'));
+app.use('/api/pix', require('./routes/pix'));
+
 
 //Documentação Swagger
 swaggerDocs(app);
+
+// console.log('RABBITMQ_URL',process.env.RABBITMQ_URL)
 
 app.listen(PORT, "0.0.0.0",() => {
     console.log(`API REST rodando em https://api-solfort.up.railway.app/:${PORT}`);

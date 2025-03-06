@@ -1,12 +1,11 @@
 const mongoose = require('mongoose');
 
-const CardSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+const cardSchema = new mongoose.Schema({
+    userId: { type: String, required: true },
     cardNumber: { type: String, required: true },
-    cardHolder: { type: String, required: true },
+    holderName: { type: String, required: true },
     expirationDate: { type: String, required: true },
     cvv: { type: String, required: true },
-    brand: { type: String, enum: ['Visa', 'Mastercard', 'Elo', 'Amex'], required: true }
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('Card', CardSchema);
+module.exports = mongoose.model('Card', cardSchema);

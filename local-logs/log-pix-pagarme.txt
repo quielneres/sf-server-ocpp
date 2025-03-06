@@ -1,0 +1,56 @@
+{
+   "amount":5000,
+   "charges":[
+      {
+         "amount":5000,
+         "code":"E0NVT1T3MR",
+         "created_at":"2025-02-23T18:36:18Z",
+         "currency":"BRL",
+         "customer":[
+            "Object"
+         ],
+         "id":"ch_PyE0GQRuauemk86L",
+         "last_transaction":[
+            "Object"
+         ],
+         "payment_method":"pix",
+         "status":"failed",
+         "updated_at":"2025-02-23T18:36:18Z"
+      }
+   ],
+   "closed":true,
+   "closed_at":"2025-02-23T18:36:18Z",
+   "code":"E0NVT1T3MR",
+   "created_at":"2025-02-23T18:36:18Z",
+   "currency":"BRL",
+   "customer":{
+      "created_at":"2024-12-28T07:15:38Z",
+      "delinquent":false,
+      "document":"111111111111",
+      "email":"cliente@email.com",
+      "id":"cus_mX2OnWbT3Tg0k6pW",
+      "name":"Cliente Teste",
+      "phones":{
+         "home_phone":[
+            "Object"
+         ]
+      },
+      "type":"individual",
+      "updated_at":"2024-12-28T15:01:30Z"
+   },
+   "id":"or_KdLyBl2IGIjq3Za2",
+   "items":[
+      {
+         "amount":5000,
+         "created_at":"2025-02-23T18:36:18Z",
+         "description":"Carregamento - undefined",
+         "id":"oi_lJEq7Z4CJCL1V4ma",
+         "quantity":1,
+         "status":"active",
+         "type":"product",
+         "updated_at":"2025-02-23T18:36:18Z"
+      }
+   ],
+   "status":"failed",
+   "updated_at":"2025-02-23T18:36:18Z"
+}

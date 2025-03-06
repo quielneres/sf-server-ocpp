@@ -10,10 +10,12 @@ const TransactionSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-const WalletSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    balance: { type: Number, default: 0 },
+
+const CreditCardTransactionSchema = new mongoose.Schema({
+    userId: { type: Number, required: true },
+    creditCardId: { type: String, required: true },
+    amount: { type: Number, default: 0 },
     transactions: [TransactionSchema]
 });
 
-module.exports = mongoose.model('Wallet', WalletSchema);
+module.exports = mongoose.model('CreditCardTransaction', CreditCardTransactionSchema);
