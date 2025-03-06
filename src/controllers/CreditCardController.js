@@ -2,6 +2,7 @@ const { creditCardTransaction } = require('../services/CreditCardService');
 const Card = require('../models/Card');
 const User = require('../models/User');
 const Wallet = require("../models/Wallet");
+const CreditCardTransaction = require("../models/CreditCardTransaction");
 
 
 /**
@@ -80,44 +81,6 @@ const creditCardDeposit = async (req, res) => {
                 ]
             };
 
-        // const payload = {
-        //     "items": [
-        //         {
-        //             "amount": 2990,
-        //             "description": "Chaveiro do Tesseract",
-        //             "quantity": 1
-        //         }
-        //     ],
-        //     "customer": {
-        //         "name": "Tony Stark",
-        //         "email": "avengerstark@ligadajustica.com.br"
-        //     },
-        //     "payments": [
-        //         {
-        //             "payment_method": "credit_card",
-        //             "credit_card": {
-        //                 "recurrence_cycle": "first",
-        //                 "installments": 1,
-        //                 "statement_descriptor": "AVENGERS",
-        //                 "card": {
-        //                     "number": "4000000000000010",
-        //                     "holder_name": "Tony Stark",
-        //                     "exp_month": 1,
-        //                     "exp_year": 30,
-        //                     "cvv": "3531",
-        //                     "billing_address": {
-        //                         "line_1": "10880, Malibu Point, Malibu Central",
-        //                         "zip_code": "90265",
-        //                         "city": "Malibu",
-        //                         "state": "CA",
-        //                         "country": "US"
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     ]
-        // };
-
 
         const result = await creditCardTransaction(payload);
 
@@ -159,4 +122,104 @@ const creditCardDeposit = async (req, res) => {
     }
 };
 
-module.exports = { creditCardDeposit };
+const chargeWithCreditCard = async (req, res) => {
+    try {
+        const { userId, creditCardId,  amount, } = req.body;
+
+        const user = await User.findOne({ _id : userId});
+
+        if (!user) {
+            return res.status(404).json({ message: "Usuário não encontrado." });
+        }
+
+        const creditCard = await Card.findOne({_id: creditCardId, userId: userId });
+
+        if (!creditCard) {
+            return res.status(400).json({ message: 'Problema ao pesquisar Cartão.'});
+        }
+
+        const payload = preparePayload(amount, creditCard, user);
+
+        const result = await creditCardTransaction(payload);
+
+        if (result.status === 'failed') {
+            const transaction = result.charges[0].last_transaction;
+
+            if (transaction.status === 'not_authorized' ) {
+                return res.status(400).json({ message: 'Não autorizado.'});
+            }
+            return res.status(400).json({ message: 'Problema na transação.'});
+        }
+
+        const charge = result.charges[0];
+        const transactionId = charge.id;
+        const transaction = result.charges[0].last_transaction;
+
+
+        let creditCardTransaction = await new CreditCardTransaction(
+            {
+                userId,
+                creditCardId,
+                amount,
+                transactions: []
+            }
+        );
+
+        creditCardTransaction.transactions.push({
+            transactionId,
+            amount,
+            type: 'deposit',
+            status: charge.status,
+            paymentMethod: 'credit_card'
+        });
+
+        await creditCardTransaction.save();
+
+        res.json({ message: "Trasação realizada com sucesso!" });
+    } catch (error) {
+        console.error("Erro no PixController.pixGenerate:", error.response?.data || error.message);
+        res.status(500).json({ message: "Erro na transação. Tente novamente." });
+    }
+};
+
+const preparePayload = (amount, creditCard, user) => {
+    return {
+        items: [
+            {
+                amount: amount * 100, // Valor em centavos
+                description: `Recarga Eletroposto`,
+                quantity: 1,
+            }
+        ],
+        customer: {
+            name: user.name,
+            email: user.email,
+        },
+        payments: [
+            {
+                payment_method: "credit_card",
+                credit_card: {
+                    recurrence_cycle: "first",
+                    installments: 1,
+                    statement_descriptor: "SolFort Eletropost",
+                    card: {
+                        number: "4000000000000010",
+                        holder_name: creditCard.holderName,
+                        exp_month: 1,
+                        exp_year: 30,
+                        cvv: creditCard.cvv,
+                        billing_address: {
+                            line_1: "10880, Malibu Point, Malibu Central",
+                            zip_code: "90265",
+                            city: "Malibu",
+                            state: "CA",
+                            country: "US"
+                        }
+                    }
+                }
+            }
+        ]
+    };
+};
+
+module.exports = { creditCardDeposit, chargeWithCreditCard};

@@ -46,6 +46,8 @@ app.use('/api/pix', require('./routes/pix'));
 //Documentação Swagger
 swaggerDocs(app);
 
+// console.log('RABBITMQ_URL',process.env.RABBITMQ_URL)
+
 app.listen(PORT, "0.0.0.0",() => {
     console.log(`API REST rodando em https://api-solfort.up.railway.app/:${PORT}`);
 });

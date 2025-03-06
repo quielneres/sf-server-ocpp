@@ -122,4 +122,6 @@ router.get('/:userId', async (req, res) => {
  */
 router.post('/deposit-with-credit-card', CreditCardController.creditCardDeposit);
 
+router.post('/charge-with-credit-card', CreditCardController.chargeWithCreditCard);
+
 module.exports = router;
