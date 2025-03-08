@@ -105,6 +105,8 @@ const updateTransactionStatus = async (userId, transactionId) => {
         transaction.status = status;
         transaction.updatedAt = new Date();
 
+        console.log('status da transacao', status);
+
         // Se foi pago, adiciona o saldo ao usuário
         if (status === 'paid') {
             wallet.balance += transaction.amount;
