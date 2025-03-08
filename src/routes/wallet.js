@@ -50,8 +50,17 @@ router.get('/:userId/balance', async (req, res) => {
         }
 
         wallet.transactions.map(tx => {
+
             if (tx.status === 'pending') {
                 updateTransactionStatus(req.params.userId, tx?.transactionId);
+
+                // const walletUpdated =  Wallet.findOne({ userId: req.params.userId });
+                // if (!walletUpdated) {
+                //     // Retorna saldo 0 caso não exista
+                //     return res.json({ balance: 0, message: 'Saldo não encontrado, retornando 0' });
+                // }
+                //
+                // res.json(walletUpdated)
             }
         });
 
