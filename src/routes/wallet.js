@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const Wallet = require('../models/Wallet');
 const Charger = require("../models/Charger");
+const {updateTransactionStatus} = require("../services/PixService");
 const router = express.Router();
 
 const PAGARME_API_KEY = 'SUA_CHAVE_SECRETA_PAGARME';
@@ -47,6 +48,13 @@ router.get('/:userId/balance', async (req, res) => {
             // Retorna saldo 0 caso não exista
             return res.json({ balance: 0, message: 'Saldo não encontrado, retornando 0' });
         }
+
+        wallet.transactions.map(tx => {
+            if (tx.status === 'pending') {
+                updateTransactionStatus(req.params.userId, tx?.transactionId);
+            }
+        });
+
         res.json(wallet);
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar carteira', error: error.message });
