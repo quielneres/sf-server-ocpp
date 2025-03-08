@@ -51,4 +51,6 @@ const router = express.Router();
  */
 router.post('/register', UserController.register);
 
+router.post('/accept-terms', UserController.acceptTerms);
+
 module.exports = router;

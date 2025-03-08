@@ -1,4 +1,5 @@
 const UserService = require('../services/userService');
+const User = require('../models/User');
 
 class UserController {
     /**
@@ -20,6 +21,26 @@ class UserController {
         } catch (error) {
             console.error('Erro ao cadastrar usuário:', error);
             res.status(500).json({ message: error.message || 'Erro ao cadastrar usuário' });
+        }
+    }
+
+    static async acceptTerms(req, res) {
+        try {
+
+            const { userId, acceptedTerms } = req.body;
+            const user = await User.findOne({ _id : userId});
+
+            if (!user) {
+                return res.status(404).json({ message: 'Usuário nao encontrado' });
+            }
+
+            user.termsAccepted = acceptedTerms;
+            await user.save();
+
+            res.status(200).json({ success: true, message: 'Termo de uso aceito com sucesso' });
+        } catch (error) {
+            console.error('Erro ao aceitar termo de uso:', error);
+            res.status(500).json({ message: error.message || 'Erro ao aceitar termo de uso' });
         }
     }
 }
