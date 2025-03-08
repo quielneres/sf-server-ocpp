@@ -66,6 +66,7 @@ const generatePix = async (userId, amount, payload) => {
  * @returns {Promise<{status: *, data: any}>} - Status da transação ("pending", "paid", "failed")
  */
 const checkTransactionStatus = async (transactionId) => {
+
     try {
         const response = await axios.get(
             `${API_BASE_URL}/charges/${transactionId}`,
@@ -77,7 +78,7 @@ const checkTransactionStatus = async (transactionId) => {
             }
         );
 
-        return {status: status, data: response.data};
+        return {status: response.data?.status, data: response.data};
     } catch (error) {
         console.error("❌ Erro ao verificar status do pagamento:", error.response?.data || error.message);
         throw error;
@@ -94,9 +95,10 @@ const updateTransactionStatus = async (userId, transactionId) => {
     try {
 
         const wallet = await Wallet.findOne({ userId });
-        if (!wallet) return false;
 
+        if (!wallet) return false;
         const transaction = wallet.transactions.find(tx => tx.transactionId === transactionId);
+
         if (!transaction) return false;
 
         const transactionDetail = await checkTransactionStatus(transactionId);
@@ -104,8 +106,6 @@ const updateTransactionStatus = async (userId, transactionId) => {
 
         transaction.status = status;
         transaction.updatedAt = new Date();
-
-        console.log('status da transacao', status);
 
         // Se foi pago, adiciona o saldo ao usuário
         if (status === 'paid') {
