@@ -2,6 +2,7 @@ const { RPCServer } = require('ocpp-rpc');
 const Charger = require('../models/Charger');
 const { handleMeterValues } = require("./handlers");
 const amqp = require('amqplib');
+const ChargingTransaction = require('../models/ChargingTransaction');
 
 class OCPPServer {
     constructor() {
@@ -75,28 +76,83 @@ class OCPPServer {
                 return {};
             });
 
+            // client.handle('StartTransaction', async ({ params }) => {
+            //     console.info(`🚀 StartTransaction de ${client.identity}:`, params);
+            //
+            //     let transactionId = params.transactionId || Math.floor(Math.random() * 100000);
+            //     if (!params.transactionId) {
+            //         console.warn(`⚠️ StartTransaction sem transactionId recebido, gerando um: ${transactionId}`);
+            //     }
+            //
+            //     global.activeTransactions.set(client.identity, transactionId);
+            //     console.info(`📌 Transaction armazenada: ${client.identity} -> ${transactionId}`);
+            //
+            //     return { transactionId, idTagInfo: { status: "Accepted" } };
+            // });
+            //
+            // client.handle('StopTransaction', async ({ params }) => {
+            //     console.info(`🛑 StopTransaction de ${client.identity}:`, params);
+            //
+            //     global.activeTransactions.delete(client.identity);
+            //     console.info(`🗑 Transaction removida: ${client.identity}`);
+            //
+            //     return { idTagInfo: { status: "Accepted" } };
+            // });
+
+
             client.handle('StartTransaction', async ({ params }) => {
                 console.info(`🚀 StartTransaction de ${client.identity}:`, params);
 
                 let transactionId = params.transactionId || Math.floor(Math.random() * 100000);
-                if (!params.transactionId) {
-                    console.warn(`⚠️ StartTransaction sem transactionId recebido, gerando um: ${transactionId}`);
+
+                try {
+                    const newTransaction = new ChargingTransaction({
+                        chargerId: client.identity,
+                        transactionId,
+                        startTime: new Date()
+                    });
+
+                    await newTransaction.save();
+
+                    global.activeTransactions.set(client.identity, transactionId);
+                    console.info(`✅ Transação iniciada e salva no banco: ${transactionId}`);
+
+                    return { transactionId, idTagInfo: { status: "Accepted" } };
+                } catch (error) {
+                    console.error(`❌ Erro ao iniciar transação:`, error);
+                    return { idTagInfo: { status: "Rejected" } };
                 }
-
-                global.activeTransactions.set(client.identity, transactionId);
-                console.info(`📌 Transaction armazenada: ${client.identity} -> ${transactionId}`);
-
-                return { transactionId, idTagInfo: { status: "Accepted" } };
             });
 
             client.handle('StopTransaction', async ({ params }) => {
                 console.info(`🛑 StopTransaction de ${client.identity}:`, params);
 
-                global.activeTransactions.delete(client.identity);
-                console.info(`🗑 Transaction removida: ${client.identity}`);
+                const transactionId = global.activeTransactions.get(client.identity);
+                if (!transactionId) {
+                    console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando StopTransaction.`);
+                    return { idTagInfo: { status: "Rejected" } };
+                }
+
+                try {
+                    const transaction = await ChargingTransaction.findOne({ transactionId });
+
+                    if (transaction) {
+                        transaction.endTime = new Date();
+                        await transaction.save();
+                        console.info(`✅ Transação finalizada: ${transactionId}`);
+                    } else {
+                        console.warn(`⚠️ Transação ${transactionId} não encontrada no banco.`);
+                    }
+
+                    global.activeTransactions.delete(client.identity);
+                } catch (error) {
+                    console.error(`❌ Erro ao finalizar transação:`, error);
+                }
 
                 return { idTagInfo: { status: "Accepted" } };
             });
+
+
 
             client.handle('Heartbeat', async () => {
                 console.info(`💓 Heartbeat recebido de ${client.identity}`);
@@ -131,11 +187,49 @@ class OCPPServer {
             //     return {};
             // });
 
+            // client.handle('MeterValues', async ({ params }) => {
+            //     console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
+            //     // this.publishToRabbitMQ(client.identity, params); // Envia os dados para RabbitMQ
+            //     return {};
+            // });
+
             client.handle('MeterValues', async ({ params }) => {
                 console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
-                // this.publishToRabbitMQ(client.identity, params); // Envia os dados para RabbitMQ
+
+                const transactionId = global.activeTransactions.get(client.identity);
+                if (!transactionId) {
+                    console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando MeterValues.`);
+                    return {};
+                }
+
+                try {
+                    const transaction = await ChargingTransaction.findOne({ transactionId });
+
+                    if (transaction) {
+                        const meterValue = {
+                            timestamp: params.meterValue[0]?.timestamp || new Date(),
+                            values: params.meterValue[0]?.sampledValue.map(value => ({
+                                value: value.value,
+                                unit: value.unit,
+                                context: value.context,
+                                measurand: value.measurand
+                            }))
+                        };
+
+                        transaction.meterValues.push(meterValue);
+                        await transaction.save();
+
+                        console.info(`📥 MeterValue salvo para transactionId: ${transactionId}`);
+                    } else {
+                        console.warn(`⚠️ Transação ${transactionId} não encontrada no banco.`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Erro ao salvar MeterValues:`, error);
+                }
+
                 return {};
             });
+
 
             client.on('close', async () => {
                 console.info(`🔌 Conexão encerrada: ${client.identity}`);
@@ -159,6 +253,8 @@ class OCPPServer {
         });
 
     }
+
+
 
     // async initRabbitMQ() {
     //     try {
