@@ -10,8 +10,8 @@ class OCPPServer {
 
         // 🔹 Carregar os certificados SSL/TLS
         const options = {
-            minVersion: 'TLSv1.2', // Força o uso do TLS 1.2
-            maxVersion: 'TLSv1.2', // Força o uso do TLS 1.2
+            // minVersion: 'TLSv1.2', // Força o uso do TLS 1.2
+            // maxVersion: 'TLSv1.2', // Força o uso do TLS 1.2
             cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
             key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
             ciphers: [
