@@ -9,25 +9,30 @@ class OCPPServer {
         const port = process.env.WS_PORT || process.env.PORT || 443; // Porta padrão HTTPS
 
         // 🔹 Carregar os certificados SSL/TLS
-        const options = {
-            // minVersion: 'TLSv1.2', // Força o uso do TLS 1.2
-            // maxVersion: 'TLSv1.2', // Força o uso do TLS 1.2
-            cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
-            key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
-            ciphers: [
-                'ECDHE-RSA-AES128-GCM-SHA256',
-                'ECDHE-RSA-AES256-GCM-SHA384',
-                'ECDHE-RSA-AES128-SHA256',
-                'ECDHE-RSA-AES256-SHA384',
-                'AES128-GCM-SHA256',
-                'AES256-GCM-SHA384',
-                'AES128-SHA256',
-                'AES256-SHA256'
-            ].join(':'),
-            honorCipherOrder: true,
-            ALPNProtocols: ['http/1.1']
-        };
+        // const options = {
+        //     minVersion: 'TLSv1.2', // Força o uso do TLS 1.2
+        //     maxVersion: 'TLSv1.2', // Força o uso do TLS 1.2
+        //     // cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
+        //     // key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
+        //     ciphers: [
+        //         'ECDHE-RSA-AES128-GCM-SHA256',
+        //         'ECDHE-RSA-AES256-GCM-SHA384',
+        //         'ECDHE-RSA-AES128-SHA256',
+        //         'ECDHE-RSA-AES256-SHA384',
+        //         'AES128-GCM-SHA256',
+        //         'AES256-GCM-SHA384',
+        //         'AES128-SHA256',
+        //         'AES256-SHA256'
+        //     ].join(':'),
+        //     honorCipherOrder: true,
+        //     ALPNProtocols: ['http/1.1']
+        // };
 
+        const options = {
+            ciphers: 'TLS_RSA_WITH_AES_128_CBC_SHA',
+            minVersion: 'TLSv1.2',
+            maxVersion: 'TLSv1.2'
+        };
         // 🔹 Criar servidor HTTPS
         const server = https.createServer(options);
 
