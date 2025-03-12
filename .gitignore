@@ -54,7 +54,7 @@ Dockerfile
 *.sqlite
 *.sqlite-journal
 dump.rdb
-*.pem
+#*.pem
 
 # 🚀 Configurações específicas do servidor
 pm2-runtime.log
