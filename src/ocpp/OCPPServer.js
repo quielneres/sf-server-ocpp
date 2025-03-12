@@ -248,9 +248,9 @@ class OCPPServer {
             });
         });
 
-        this.server.listen(port, '0.0.0.0', () => {
-            console.log(`🚀 Servidor OCPP rodando em wss://ws-solfort.up.railway.app:${port}`);
-        });
+        this.server.listen(port, '0.0.0.0', { path: '/ocpp' }, () => {
+            console.log(`🚀 Servidor OCPP rodando em wss://e2n.online:${port}/ocpp`);
+        })
 
     }
 
