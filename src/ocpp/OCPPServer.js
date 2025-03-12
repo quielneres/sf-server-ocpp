@@ -1,21 +1,30 @@
+const fs = require('fs');
+const https = require('https');
 const { RPCServer } = require('ocpp-rpc');
 const Charger = require('../models/Charger');
-const { handleMeterValues } = require("./handlers");
-const amqp = require('amqplib');
 const ChargingTransaction = require('../models/ChargingTransaction');
 
 class OCPPServer {
     constructor() {
-        //const port = process.env.PORT || 3000;
-        const port = process.env.WS_PORT || process.env.PORT || 3001;
+        const port = process.env.WS_PORT || process.env.PORT || 443; // Porta padrão HTTPS
 
-        // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
+        // 🔹 Carregar os certificados SSL/TLS
+        const options = {
+            cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
+            key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
+        };
 
+        // 🔹 Criar servidor HTTPS
+        const server = https.createServer(options);
+
+        // 🔹 Criar WebSocket Server OCPP sobre HTTPS
         this.server = new RPCServer({
+            server,
+            path: '/ocpp', // Define o caminho para os carregadores se conectarem
             protocols: ['ocpp1.6'],
             strictMode: true
         });
-        // this.initRabbitMQ(); // 🔹 Inicia conexão com o RabbitMQ
+
         this.chargers = new Map();
         global.ocppClients = new Map();
         global.activeTransactions = new Map();
@@ -25,6 +34,7 @@ class OCPPServer {
             this.chargers.set(client.identity, client);
             global.ocppClients.set(client.identity, client);
 
+            // 🔹 BootNotification: Quando o carregador se conecta
             client.handle('BootNotification', async ({ params }) => {
                 console.info(`📡 BootNotification de ${client.identity}:`, params);
 
@@ -59,6 +69,7 @@ class OCPPServer {
                 }
             });
 
+            // 🔹 StatusNotification: Atualiza status do carregador
             client.handle('StatusNotification', async ({ params }) => {
                 console.info(`🔔 StatusNotification de ${client.identity}:`, params);
 
@@ -76,30 +87,7 @@ class OCPPServer {
                 return {};
             });
 
-            // client.handle('StartTransaction', async ({ params }) => {
-            //     console.info(`🚀 StartTransaction de ${client.identity}:`, params);
-            //
-            //     let transactionId = params.transactionId || Math.floor(Math.random() * 100000);
-            //     if (!params.transactionId) {
-            //         console.warn(`⚠️ StartTransaction sem transactionId recebido, gerando um: ${transactionId}`);
-            //     }
-            //
-            //     global.activeTransactions.set(client.identity, transactionId);
-            //     console.info(`📌 Transaction armazenada: ${client.identity} -> ${transactionId}`);
-            //
-            //     return { transactionId, idTagInfo: { status: "Accepted" } };
-            // });
-            //
-            // client.handle('StopTransaction', async ({ params }) => {
-            //     console.info(`🛑 StopTransaction de ${client.identity}:`, params);
-            //
-            //     global.activeTransactions.delete(client.identity);
-            //     console.info(`🗑 Transaction removida: ${client.identity}`);
-            //
-            //     return { idTagInfo: { status: "Accepted" } };
-            // });
-
-
+            // 🔹 StartTransaction: Inicia uma transação de carregamento
             client.handle('StartTransaction', async ({ params }) => {
                 console.info(`🚀 StartTransaction de ${client.identity}:`, params);
 
@@ -124,6 +112,7 @@ class OCPPServer {
                 }
             });
 
+            // 🔹 StopTransaction: Finaliza uma transação de carregamento
             client.handle('StopTransaction', async ({ params }) => {
                 console.info(`🛑 StopTransaction de ${client.identity}:`, params);
 
@@ -152,8 +141,7 @@ class OCPPServer {
                 return { idTagInfo: { status: "Accepted" } };
             });
 
-
-
+            // 🔹 Heartbeat: Atualiza o status do carregador
             client.handle('Heartbeat', async () => {
                 console.info(`💓 Heartbeat recebido de ${client.identity}`);
 
@@ -171,28 +159,7 @@ class OCPPServer {
                 return { currentTime: new Date().toISOString() };
             });
 
-            // client.handle('MeterValues', async (params) => await handleMeterValues(client, params));
-
-
-            // client.handle('MeterValues', async ({ params }) => {
-            //     console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
-            //
-            //     const meterData = {
-            //         chargerId: client.identity,
-            //         timestamp: params.meterValue[0]?.timestamp || new Date().toISOString(),
-            //         values: params.meterValue[0]?.sampledValue || [],
-            //     };
-            //
-            //     this.sendToRabbitMQ(meterData); // 🔹 Envia para RabbitMQ
-            //     return {};
-            // });
-
-            // client.handle('MeterValues', async ({ params }) => {
-            //     console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
-            //     // this.publishToRabbitMQ(client.identity, params); // Envia os dados para RabbitMQ
-            //     return {};
-            // });
-
+            // 🔹 MeterValues: Atualiza os valores de medição do carregamento
             client.handle('MeterValues', async ({ params }) => {
                 console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
 
@@ -230,7 +197,7 @@ class OCPPServer {
                 return {};
             });
 
-
+            // 🔹 Evento de desconexão do carregador
             client.on('close', async () => {
                 console.info(`🔌 Conexão encerrada: ${client.identity}`);
 
@@ -248,33 +215,11 @@ class OCPPServer {
             });
         });
 
-        this.server.listen(port, '0.0.0.0', { path: '/ocpp' }, () => {
+        // 🔹 Inicia o servidor HTTPS
+        server.listen(port, () => {
             console.log(`🚀 Servidor OCPP rodando em wss://e2n.online:${port}/ocpp`);
-        })
-
+        });
     }
-
-
-
-    // async initRabbitMQ() {
-    //     try {
-    //         this.rabbitConn = await amqp.connect( 'amqp://localhost');
-    //         this.rabbitChannel = await this.rabbitConn.createChannel();
-    //         await this.rabbitChannel.assertExchange('meter_values_exchange', 'direct', { durable: false });
-    //         console.log("✅ Conectado ao RabbitMQ");
-    //     } catch (error) {
-    //         console.error("❌ Erro ao conectar ao RabbitMQ:", error);
-    //     }
-    // }
-    //
-    // publishToRabbitMQ(chargerId, data) {
-    //     if (this.rabbitChannel) {
-    //         this.rabbitChannel.publish('meter_values_exchange', `charger.${chargerId}`, Buffer.from(JSON.stringify(data)));
-    //         console.info(`📤 Enviado para RabbitMQ (charger.${chargerId}):`, data);
-    //     } else {
-    //         console.error("❌ Canal RabbitMQ não inicializado.");
-    //     }
-    // }
 }
 
 module.exports = OCPPServer;
