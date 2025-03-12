@@ -1,5 +1,3 @@
-const fs = require('fs');
-const https = require('https');
 const WebSocket = require('ws');
 const { RPCServer } = require('ocpp-rpc');
 const Charger = require('../models/Charger');
@@ -7,29 +5,10 @@ const ChargingTransaction = require('../models/ChargingTransaction');
 
 class OCPPServer {
     constructor() {
-        const port = process.env.WS_PORT || process.env.PORT || 3001;
-
-        // Configurações do servidor HTTPS
-        const options = {
-            ciphers: [
-                'ECDHE-RSA-AES128-GCM-SHA256',
-                'ECDHE-RSA-AES256-GCM-SHA384',
-                'ECDHE-RSA-AES128-SHA256',
-                'ECDHE-RSA-AES256-SHA384',
-                'AES128-GCM-SHA256',
-                'AES256-GCM-SHA384',
-                'AES128-SHA256',
-                'AES256-SHA256'
-            ].join(':'),
-            honorCipherOrder: true,
-            ALPNProtocols: ['http/1.1']
-        };
-
-        // Criando servidor HTTPS
-        const server = https.createServer(options);
+        const port = process.env.PORT || 3001; // Railway define a porta automaticamente
 
         // Criando servidor WebSocket no caminho "/ocpp"
-        const wss = new WebSocket.Server({ server, path: "/ocpp" });
+        const wss = new WebSocket.Server({ port, path: "/ocpp" });
 
         // Configuração do servidor OCPP
         this.server = new RPCServer({
@@ -185,9 +164,9 @@ class OCPPServer {
             });
         });
 
-        // Iniciar o servidor HTTPS + WebSocket
-        server.listen(port, () => {
-            console.log(`🚀 Servidor OCPP rodando em wss://e2n.online:${port}/ocpp`);
+        // Iniciar o servidor WebSocket
+        wss.on('listening', () => {
+            console.log(`🚀 Servidor OCPP rodando na porta ${port}`);
         });
     }
 }
