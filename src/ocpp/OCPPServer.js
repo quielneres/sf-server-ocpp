@@ -12,6 +12,18 @@ class OCPPServer {
         const options = {
             cert: fs.readFileSync(__dirname + '/certs/fullchain.pem'),
             key: fs.readFileSync(__dirname + '/certs/privkey.pem'),
+            ciphers: [
+                'ECDHE-RSA-AES128-GCM-SHA256',
+                'ECDHE-RSA-AES256-GCM-SHA384',
+                'ECDHE-RSA-AES128-SHA256',
+                'ECDHE-RSA-AES256-SHA384',
+                'AES128-GCM-SHA256',
+                'AES256-GCM-SHA384',
+                'AES128-SHA256',
+                'AES256-SHA256'
+            ].join(':'),
+            honorCipherOrder: true,
+            ALPNProtocols: ['http/1.1']
         };
 
         // 🔹 Criar servidor HTTPS
