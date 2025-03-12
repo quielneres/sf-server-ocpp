@@ -4,6 +4,8 @@ const Charger = require('../models/Charger');
 const router = express.Router();
 const { getDistance } = require('../utils/geoUtils');
 
+const ChargingTransaction = require('../models/ChargingTransaction');
+
 const MINIMUM_BALANCE = 30; // Valor mínimo para iniciar carregamento
 
 /**
@@ -178,6 +180,21 @@ router.post('/:id/stop', async (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ message: "Erro ao encerrar carregamento", error: error.message });
+    }
+});
+
+
+router.get('/charging-transactions/:transactionId', async (req, res) => {
+    try {
+        const transaction = await ChargingTransaction.findOne({ transactionId: req.params.transactionId });
+
+        if (!transaction) {
+            return res.status(404).json({ error: "Transação não encontrada" });
+        }
+
+        res.json(transaction);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao buscar transação" });
     }
 });
 
