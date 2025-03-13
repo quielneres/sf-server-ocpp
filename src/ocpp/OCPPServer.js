@@ -13,7 +13,8 @@ class OCPPServer {
 
         this.server = new RPCServer({
             protocols: ['ocpp1.6'],
-            strictMode: true
+            strictMode: true,
+            wsOpts: { minVersion: 'TLSv1.2' }
         });
         // this.initRabbitMQ(); // 🔹 Inicia conexão com o RabbitMQ
         this.chargers = new Map();
