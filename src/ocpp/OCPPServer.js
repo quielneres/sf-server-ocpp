@@ -16,8 +16,8 @@ class OCPPServer {
         }
 
         const httpsServer = https.createServer({
-            cert: fs.readFileSync(certPath),
-            key: fs.readFileSync(keyPath),
+            // cert: fs.readFileSync(certPath),
+            // key: fs.readFileSync(keyPath),
             minVersion: 'TLSv1.2'
         });
 
