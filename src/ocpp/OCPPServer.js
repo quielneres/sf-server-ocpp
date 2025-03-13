@@ -18,7 +18,7 @@ class OCPPServer {
         const httpsServer = https.createServer({
             // cert: fs.readFileSync(certPath),
             // key: fs.readFileSync(keyPath),
-            minVersion: 'TLSv1.2'
+            // minVersion: 'TLSv1.2'
         });
 
         this.server = new RPCServer({ protocols: ['ocpp1.6'], strictMode: true });
