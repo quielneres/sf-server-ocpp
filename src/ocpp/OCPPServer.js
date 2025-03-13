@@ -3,6 +3,7 @@ const Charger = require('../models/Charger');
 const { handleMeterValues } = require("./handlers");
 const amqp = require('amqplib');
 const ChargingTransaction = require('../models/ChargingTransaction');
+const { readFile } = require('fs/promises');
 
 class OCPPServer {
     constructor() {
@@ -12,6 +13,10 @@ class OCPPServer {
         // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
 
         this.server = new RPCServer({
+            cert: [
+                readFile('./certs/fullchain.pem', 'utf8'), // RSA certificate
+                readFile('./certs/privkey.pem', 'utf8'), // ECDSA certificate
+            ],
             protocols: ['ocpp1.6'],
             strictMode: true,
             wsOpts: { minVersion: 'TLSv1.2' }
