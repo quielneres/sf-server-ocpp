@@ -15,11 +15,11 @@ class OCPPServer {
             process.exit(1);
         }
 
-        const httpsServer = https.createServer({
-            // cert: fs.readFileSync(certPath),
-            // key: fs.readFileSync(keyPath),
-            // minVersion: 'TLSv1.2'
-        });
+        // const httpsServer = https.createServer({
+        //     // cert: fs.readFileSync(certPath),
+        //     // key: fs.readFileSync(keyPath),
+        //     // minVersion: 'TLSv1.2'
+        // });
 
         this.server = new RPCServer({ protocols: ['ocpp1.6'], strictMode: true });
         this.chargers = new Map();
