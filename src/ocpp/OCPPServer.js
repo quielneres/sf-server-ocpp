@@ -3,6 +3,7 @@ const { RPCServer } = require('ocpp-rpc');
 const { readFile } = require('fs/promises');
 const Charger = require('../models/Charger');
 const ChargingTransaction = require('../models/ChargingTransaction');
+const path = require('path');
 
 class OCPPServer {
     constructor() {
@@ -16,11 +17,20 @@ class OCPPServer {
 
         try {
             // Carregue os certificados e chaves ANTES de criar o servidor HTTPS
+            // const [rsaCert, rsaKey, ecCert, ecKey] = await Promise.all([
+            //     readFile('./certs/server.crt', 'utf8'), // Certificado RSA
+            //     readFile('./certs/server.key', 'utf8'), // Chave privada RSA
+            //     readFile('./certs/ec_server.crt', 'utf8'), // Certificado ECDSA
+            //     readFile('./certs/ec_server.key', 'utf8'), // Chave privada ECDSA
+            // ]);
+
+            const certsDir = path.join(__dirname, 'certs'); // Caminho absoluto para o diretório de certificados
+
             const [rsaCert, rsaKey, ecCert, ecKey] = await Promise.all([
-                readFile('./certs/server.crt', 'utf8'), // Certificado RSA
-                readFile('./certs/server.key', 'utf8'), // Chave privada RSA
-                readFile('./certs/ec_server.crt', 'utf8'), // Certificado ECDSA
-                readFile('./certs/ec_server.key', 'utf8'), // Chave privada ECDSA
+                readFile(path.join(certsDir, 'server.crt'), 'utf8'), // Certificado RSA
+                readFile(path.join(certsDir, 'server.key'), 'utf8'), // Chave privada RSA
+                readFile(path.join(certsDir, 'ec_server.crt'), 'utf8'), // Certificado ECDSA
+                readFile(path.join(certsDir, 'ec_server.key'), 'utf8'), // Chave privada ECDSA
             ]);
 
             // Configurações do servidor HTTPS
