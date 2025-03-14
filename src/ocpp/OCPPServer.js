@@ -6,42 +6,44 @@ const ChargingTransaction = require('../models/ChargingTransaction');
 
 class OCPPServer {
     constructor() {
+        this.chargers = new Map();
+        global.ocppClients = new Map();
+        global.activeTransactions = new Map();
+    }
+
+    async start() {
         const port = process.env.WS_PORT || process.env.PORT || 3001;
 
+        // Carregue os certificados e chaves ANTES de criar o servidor HTTPS
+        const [rsaCert, rsaKey, ecCert, ecKey] = await Promise.all([
+            readFile('./certs/server.crt', 'utf8'), // Certificado RSA
+            readFile('./certs/server.key', 'utf8'), // Chave privada RSA
+            readFile('./certs/ec_server.crt', 'utf8'), // Certificado ECDSA
+            readFile('./certs/ec_server.key', 'utf8'), // Chave privada ECDSA
+        ]);
+
+        // Configurações do servidor HTTPS
+        const httpsServer = https.createServer({
+            cert: [rsaCert, ecCert], // Certificados RSA e ECDSA
+            key: [rsaKey, ecKey],    // Chaves privadas RSA e ECDSA
+            minVersion: 'TLSv1.2',   // Força o uso do TLS 1.2
+            maxVersion: 'TLSv1.2',   // Força o uso do TLS 1.2
+            ciphers: 'TLS_RSA_WITH_AES_128_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256', // Cifras suportadas
+        });
+
         // Cria o servidor OCPP
-        this.server = new RPCServer({
+        const server = new RPCServer({
             protocols: ['ocpp1.6'],
             strictMode: true
         });
 
-        // Configurações do servidor HTTPS
-        const httpsServer = https.createServer({
-            cert: [
-                readFile('./certs/server.crt', 'utf8'), // Certificado RSA
-                readFile('./certs/ec_server.crt', 'utf8'), // Certificado ECDSA
-            ],
-            key: [
-                readFile('./certs/server.key', 'utf8'), // Chave privada RSA
-                readFile('./certs/ec_server.key', 'utf8'), // Chave privada ECDSA
-            ],
-            minVersion: 'TLSv1.2', // Força o uso do TLS 1.2
-            maxVersion: 'TLSv1.2', // Força o uso do TLS 1.2
-            ciphers: 'TLS_RSA_WITH_AES_128_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256', // Cifras suportadas
-        });
-
         // Integra o servidor HTTPS com o ocpp-rpc
-        httpsServer.on('upgrade', this.server.handleUpgrade);
+        httpsServer.on('upgrade', server.handleUpgrade);
 
-        // Inicia o servidor HTTPS na porta 443
+        // Inicia o servidor HTTPS na porta configurada
         httpsServer.listen(port, () => {
             console.log(`🚀 Servidor OCPP rodando em wss://e2n.online:${port}/ocpp`);
         });
-
-        // Mapeamento de carregadores e transações
-        this.chargers = new Map();
-        global.ocppClients = new Map();
-        global.activeTransactions = new Map();
-
         // Handlers OCPP
         this.server.on('client', async (client) => {
             console.info(`🔌 Carregador conectado: ${client.identity}`);
@@ -224,4 +226,7 @@ class OCPPServer {
     }
 }
 
-module.exports = OCPPServer;
+(async () => {
+    const ocppServer = new OCPPServer();
+    await ocppServer.start();
+})();
