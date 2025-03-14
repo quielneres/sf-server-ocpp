@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const OCPPServer = require('./ocpp/OCPPServer'); // Importe o OCPPServer corretamente
+const OCPPServer = require('./ocpp/OCPPServer');
 const chargersRouter = require('./routes/chargers');
 const swaggerDocs = require('./utils/swagger');
 
@@ -20,32 +20,34 @@ mongoose.connect(process.env.MONGO_URI, {
     .catch(err => console.error(' Erro ao conectar no MongoDB:', err));
 
 // Iniciar Servidor OCPP
-const ocppServer = new OCPPServer(); // Crie uma instância do OCPPServer
-ocppServer.start().then(() => { // Inicie o servidor OCPP
-    console.log('Servidor OCPP iniciado com sucesso.');
-}).catch(err => {
-    console.error('Erro ao iniciar o servidor OCPP:', err);
-});
-
-app.set('ocppServer', ocppServer); // Defina o servidor OCPP no app
+const ocppServer = new OCPPServer();
+app.set('ocppServer', ocppServer);
 
 global.ocppClients = new Map();
 global.activeTransactions = new Map();
 
 // Rotas REST API
+// app.use('/api/chargers', chargersRouter);
+//
+// const chargingRoutes = require('./routes/charging');
+// app.use('/api/charging', chargingRoutes);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/userRoutes'));
 app.use('/api/chargers', require('./routes/chargers'));
 app.use('/api/transactions', require('./routes/transactions'));
+
 app.use('/api/charging', require('./routes/charging'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/cards', require('./routes/cardRoutes'));
 app.use('/api/cars', require('./routes/cars'));
 app.use('/api/pix', require('./routes/pix'));
 
-// Documentação Swagger
+
+//Documentação Swagger
 swaggerDocs(app);
 
-app.listen(PORT, "0.0.0.0", () => {
+// console.log('RABBITMQ_URL',process.env.RABBITMQ_URL)
+
+app.listen(PORT, "0.0.0.0",() => {
     console.log(`API REST rodando em https://api-solfort.up.railway.app/:${PORT}`);
 });
