@@ -231,7 +231,9 @@ class OCPPServer {
     }
 }
 
-(async () => {
-    const ocppServer = new OCPPServer();
-    await ocppServer.start();
-})();
+// (async () => {
+//     const ocppServer = new OCPPServer();
+//     await ocppServer.start();
+// })();
+
+module.exports = OCPPServer;
