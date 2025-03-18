@@ -7,14 +7,13 @@ const ChargingTransaction = require('../models/ChargingTransaction');
 class OCPPServer {
     constructor() {
         //const port = process.env.PORT || 3000;
-        const port = process.env.WS_PORT || process.env.PORT || 3001;
+        const port = process.env.PORT || 3001;
 
         // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
 
         this.server = new RPCServer({
             protocols: ['ocpp1.6'],
             strictMode: true,
-            wsOpts: { minVersion: 'TLSv1.2', maxVersion: 'TLSv1.2' }
         });
         // this.initRabbitMQ(); // 🔹 Inicia conexão com o RabbitMQ
         this.chargers = new Map();
