@@ -10,7 +10,7 @@ const options = {
             description: "API para gerenciamento de carregadores elétricos com OCPP",
         },
         servers: [
-            { url: "https://api-solfort.up.railway.app" }
+            { url: "http://35.190.161.104:4000" }
         ]
     },
     apis: ["./src/routes/*.js"] // Importa automaticamente a documentação das rotas
