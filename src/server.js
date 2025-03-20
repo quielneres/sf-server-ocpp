@@ -8,7 +8,8 @@ const swaggerDocs = require('./utils/swagger');
 dotenv.config();
 
 const app = express();
-const PORT = 4000;
+// const PORT = process.env.PORT || 80;
+const PORT = 80;
 app.use(express.json());
 
 // Conectar ao MongoDB
