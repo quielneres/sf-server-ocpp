@@ -7,7 +7,7 @@ const ChargingTransaction = require('../models/ChargingTransaction');
 class OCPPServer {
     constructor() {
         //const port = process.env.PORT || 3000;
-        const port = 9000;
+        const port = 3000;
 
         // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
 
