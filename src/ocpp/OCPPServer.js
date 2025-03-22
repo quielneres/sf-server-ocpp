@@ -3,6 +3,7 @@ const Charger = require('../models/Charger');
 const { handleMeterValues } = require("./handlers");
 const amqp = require('amqplib');
 const ChargingTransaction = require('../models/ChargingTransaction');
+const { addLog } = require("../routes/logs");
 
 class OCPPServer {
     constructor() {
@@ -15,7 +16,9 @@ class OCPPServer {
             protocols: ['ocpp1.6'],
             strictMode: true,
         });
-        // this.initRabbitMQ(); // 🔹 Inicia conexão com o RabbitMQ
+
+        // this.initRabbitMQ();
+
         this.chargers = new Map();
         global.ocppClients = new Map();
         global.activeTransactions = new Map();
@@ -202,30 +205,24 @@ class OCPPServer {
                     return {};
                 }
 
-                try {
-                    const transaction = await ChargingTransaction.findOne({ transactionId });
+                const meterData = {
+                    chargerId: client.identity,
+                    timestamp: params.meterValue[0]?.timestamp || new Date().toISOString(),
+                    values: params.meterValue[0]?.sampledValue || [],
+                };
 
-                    if (transaction) {
-                        const meterValue = {
-                            timestamp: params.meterValue[0]?.timestamp || new Date(),
-                            values: params.meterValue[0]?.sampledValue.map(value => ({
-                                value: value.value,
-                                unit: value.unit,
-                                context: value.context,
-                                measurand: value.measurand
-                            }))
-                        };
+                addLog(meterData);
 
-                        transaction.meterValues.push(meterValue);
-                        await transaction.save();
 
-                        console.info(`📥 MeterValue salvo para transactionId: ${transactionId}`);
-                    } else {
-                        console.warn(`⚠️ Transação ${transactionId} não encontrada no banco.`);
-                    }
-                } catch (error) {
-                    console.error(`❌ Erro ao salvar MeterValues:`, error);
-                }
+                // const logData = {
+                //     chargerId: client.identity,
+                //     timestamp: new Date().toISOString(),
+                //     values: params.meterValue[0]?.sampledValue || [],
+                // };
+                //
+                // addLog(logData); // 🔹 Adiciona o log ao buffer
+
+                // this.publishToRabbitMQ(meterData);
 
                 return {};
             });
@@ -254,23 +251,21 @@ class OCPPServer {
 
     }
 
-
-
     // async initRabbitMQ() {
     //     try {
-    //         this.rabbitConn = await amqp.connect( 'amqp://localhost');
+    //         this.rabbitConn = await amqp.connect(process.env.RABBITMQ_URL);
     //         this.rabbitChannel = await this.rabbitConn.createChannel();
-    //         await this.rabbitChannel.assertExchange('meter_values_exchange', 'direct', { durable: false });
+    //         await this.rabbitChannel.assertExchange("meter_values_exchange", "direct", { durable: false });
     //         console.log("✅ Conectado ao RabbitMQ");
     //     } catch (error) {
     //         console.error("❌ Erro ao conectar ao RabbitMQ:", error);
     //     }
     // }
     //
-    // publishToRabbitMQ(chargerId, data) {
+    // publishToRabbitMQ(data) {
     //     if (this.rabbitChannel) {
-    //         this.rabbitChannel.publish('meter_values_exchange', `charger.${chargerId}`, Buffer.from(JSON.stringify(data)));
-    //         console.info(`📤 Enviado para RabbitMQ (charger.${chargerId}):`, data);
+    //         this.rabbitChannel.publish("meter_values_exchange", "meter.values", Buffer.from(JSON.stringify(data)));
+    //         console.info("📤 Enviado para RabbitMQ:", data);
     //     } else {
     //         console.error("❌ Canal RabbitMQ não inicializado.");
     //     }
