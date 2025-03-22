@@ -6,7 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # ⚙️ Configurações do ambiente
-.env
+.env.exemple
 .env.local
 .env.development
 .env.test

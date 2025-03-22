@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const OCPPServer = require('./ocpp/OCPPServer');
 const chargersRouter = require('./routes/chargers');
 const swaggerDocs = require('./utils/swagger');
+// const startConsumer = require("./consumers/meterValuesConsumer");
+const { startConsumer } = require("./consumers/meterValuesConsumer"); // 🔹 Corrigir importação
 
 dotenv.config();
 
@@ -23,6 +25,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // Iniciar Servidor OCPP
 const ocppServer = new OCPPServer();
 app.set('ocppServer', ocppServer);
+// startConsumer();
 
 global.ocppClients = new Map();
 global.activeTransactions = new Map();
@@ -42,6 +45,10 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/cards', require('./routes/cardRoutes'));
 app.use('/api/cars', require('./routes/cars'));
 app.use('/api/pix', require('./routes/pix'));
+
+const logsRouter = require("./routes/logs"); // 🔹 Agora importa corretamente
+app.use("/api/logs", logsRouter); // 🔹 Agora funciona sem erro
+
 
 
 //Documentação Swagger

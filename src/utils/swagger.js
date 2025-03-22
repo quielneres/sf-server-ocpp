@@ -10,7 +10,7 @@ const options = {
             description: "API para gerenciamento de carregadores elétricos com OCPP",
         },
         servers: [
-            { url: "https://e2n.online" }
+            { url:  process.env.OCPP_URL  }//"https://e2n.online"
         ]
     },
     apis: ["./src/routes/*.js"] // Importa automaticamente a documentação das rotas
