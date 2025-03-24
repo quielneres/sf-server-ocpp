@@ -28,6 +28,14 @@ class OCPPServer {
             this.chargers.set(client.identity, client);
             global.ocppClients.set(client.identity, client);
 
+            let charger = await Charger.findOne({ serialNumber: client.identity });
+
+            if (charger) {
+                charger.status = 'Available';
+                await charger.save();
+            }
+
+
             client.handle('BootNotification', async ({ params }) => {
                 console.info(`📡 BootNotification de ${client.identity}:`, params);
 
@@ -111,8 +119,10 @@ class OCPPServer {
                 try {
                     const newTransaction = new ChargingTransaction({
                         chargerId: client.identity,
+                        idTag: params.idTag,
                         transactionId,
-                        startTime: new Date()
+                        startTime: new Date(),
+                        status: 'Active'
                     });
 
                     await newTransaction.save();
@@ -141,6 +151,7 @@ class OCPPServer {
 
                     if (transaction) {
                         transaction.endTime = new Date();
+                        transaction.status = 'Completed';
                         await transaction.save();
                         console.info(`✅ Transação finalizada: ${transactionId}`);
                     } else {

@@ -53,4 +53,9 @@ router.post('/register', UserController.register);
 
 router.post('/accept-terms', UserController.acceptTerms);
 
+router.post('/change-password', UserController.changePassword);
+
+router.post('/request-password-reset', UserController.requestPasswordReset);
+router.post('/reset-password', UserController.resetPassword);
+
 module.exports = router;

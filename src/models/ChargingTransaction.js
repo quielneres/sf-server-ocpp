@@ -7,10 +7,12 @@ const MeterValueSchema = new mongoose.Schema({
 
 const ChargingTransactionSchema = new mongoose.Schema({
     chargerId: { type: String, required: true },
+    idTag: { type: String, required: true },
     transactionId: { type: Number, required: true, unique: true },
     startTime: { type: Date, default: Date.now },
     endTime: { type: Date },
-    meterValues: [MeterValueSchema]
+    meterValues: [MeterValueSchema],
+    status: { type: String, enum: ["Active", "Completed"], default: "Active" }
 });
 
 module.exports = mongoose.model('ChargingTransaction', ChargingTransactionSchema);

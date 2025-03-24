@@ -5,6 +5,7 @@ const router = express.Router();
 const { getDistance } = require('../utils/geoUtils');
 
 const ChargingTransaction = require('../models/ChargingTransaction');
+const UserTransaction = require('../models/UserTransaction');
 
 const MINIMUM_BALANCE = 30; // Valor mínimo para iniciar carregamento
 
@@ -88,11 +89,7 @@ router.post('/:id/start', async (req, res) => {
         //     return res.status(400).json({ message: "Você precisa estar mais próximo do carregador." });
         // }
 
-        const idTag = userId.substring(0, 20);
-        console.log('idTag');
-
-
-        console.log('idTag', idTag);
+        const idTag = generateIdTag();
 
 
         // 🔹 Envia comando para o carregador
@@ -102,7 +99,15 @@ router.post('/:id/start', async (req, res) => {
         });
 
         if (response.status === 'Accepted') {
-            res.json({ message: "Carregamento iniciado com sucesso!", transactionId: response.transactionId });
+
+            const userTransaction = new UserTransaction({
+                userId,
+                idTag
+            });
+
+            await userTransaction.save();
+
+            res.json({ message: "Carregamento iniciado com sucesso!", idTag });
         } else {
             res.status(400).json({ message: "Carregador recusou o comando." });
         }
@@ -197,5 +202,14 @@ router.get('/charging-transactions/:transactionId', async (req, res) => {
         res.status(500).json({ error: "Erro ao buscar transação" });
     }
 });
+
+function generateIdTag(length = 20) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let idTag = '';
+    for (let i = 0; i < length; i++) {
+        idTag += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return idTag;
+}
 
 module.exports = router;
