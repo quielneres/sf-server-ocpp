@@ -57,5 +57,5 @@ swaggerDocs(app);
 // console.log('RABBITMQ_URL',process.env.RABBITMQ_URL)
 
 app.listen(PORT, "0.0.0.0",() => {
-    console.log(`API REST rodando em https://api-solfort.up.railway.app/:${PORT}`);
+    console.log(`API REST rodando em ${process.env.OCPP_URL}`);
 });

@@ -3,6 +3,7 @@ const Charger = require('../models/Charger');
 const { handleMeterValues } = require("./handlers");
 const amqp = require('amqplib');
 const ChargingTransaction = require('../models/ChargingTransaction');
+const UserTransaction = require('../models/UserTransaction');
 const { addLog } = require("../routes/logs");
 
 class OCPPServer {
@@ -27,6 +28,14 @@ class OCPPServer {
             console.info(`🔌 Carregador conectado: ${client.identity}`);
             this.chargers.set(client.identity, client);
             global.ocppClients.set(client.identity, client);
+
+            let charger = await Charger.findOne({ serialNumber: client.identity });
+
+            if (charger) {
+                charger.status = 'Available';
+                await charger.save();
+            }
+
 
             client.handle('BootNotification', async ({ params }) => {
                 console.info(`📡 BootNotification de ${client.identity}:`, params);
@@ -111,8 +120,10 @@ class OCPPServer {
                 try {
                     const newTransaction = new ChargingTransaction({
                         chargerId: client.identity,
+                        idTag: params.idTag,
                         transactionId,
-                        startTime: new Date()
+                        startTime: new Date(),
+                        status: 'Active'
                     });
 
                     await newTransaction.save();
@@ -141,6 +152,7 @@ class OCPPServer {
 
                     if (transaction) {
                         transaction.endTime = new Date();
+                        transaction.status = 'Completed';
                         await transaction.save();
                         console.info(`✅ Transação finalizada: ${transactionId}`);
                     } else {
@@ -205,24 +217,110 @@ class OCPPServer {
                     return {};
                 }
 
-                const meterData = {
-                    chargerId: client.identity,
-                    timestamp: params.meterValue[0]?.timestamp || new Date().toISOString(),
-                    values: params.meterValue[0]?.sampledValue || [],
-                };
+                try {
+                    // Busca a transação principal
+                    const transaction = await ChargingTransaction.findOne({ transactionId });
+                    if (!transaction) {
+                        console.warn(`⚠️ Transação ${transactionId} não encontrada no banco de dados`);
+                        return {};
+                    }
 
-                addLog(meterData);
+                    // Busca a transação do usuário CORRETAMENTE usando o idTag da transação principal
+                    const userTransaction = await UserTransaction.findOne({
+                        idTag: transaction.idTag  // Corrigido: usa transaction.idTag
+                    });
 
+                    if (!userTransaction) {
+                        console.warn(`⚠️ Transação do usuário com idTag ${transaction.idTag} não encontrada`);
+                        return {};
+                    }
 
-                // const logData = {
-                //     chargerId: client.identity,
-                //     timestamp: new Date().toISOString(),
-                //     values: params.meterValue[0]?.sampledValue || [],
-                // };
-                //
-                // addLog(logData); // 🔹 Adiciona o log ao buffer
+                    // ==============================================
+                    // MODO DE TESTE - Incremento artificial
+                    // ==============================================
+                    const TEST_MODE = false;
+                    const TEST_INCREMENT = 5;
+                    let testParams = {...params};
 
-                // this.publishToRabbitMQ(meterData);
+                    if (TEST_MODE && params.meterValue) {
+                        console.log('🔧 MODO DE TESTE ATIVO - Aplicando incremento artificial');
+
+                        // Busca o último valor armazenado ou usa 0 se for a primeira vez
+                        const lastConsumed = transaction.consumedKwh || 0;
+
+                        testParams.meterValue = params.meterValue.map(meter => ({
+                            ...meter,
+                            sampledValue: meter.sampledValue.map(value => {
+                                if (value.measurand === 'Energy.Active.Import.Register') {
+                                    // Incrementa baseado no último valor armazenado
+                                    const newValue = lastConsumed + TEST_INCREMENT;
+
+                                    // Atualiza a transação com o novo valor
+                                    transaction.consumedKwh = newValue;
+
+                                    return {
+                                        ...value,
+                                        value: newValue.toString()
+                                    };
+                                }
+                                return value;
+                            })
+                        }));
+
+                        console.log('🔧 Valores simulados:', testParams.meterValue);
+                    }
+                    // ==============================================
+
+                    // Processa os valores
+                    const meterData = {
+                        chargerId: client.identity,
+                        timestamp: testParams.meterValue[0]?.timestamp || new Date().toISOString(),
+                        values: testParams.meterValue[0]?.sampledValue || [],
+                    };
+                    addLog(meterData);
+
+                    // Verificação do targetKwh (agora usando userTransaction corretamente)
+                    if (userTransaction.targetKwh) {
+                        const energyValue = testParams.meterValue[0]?.sampledValue?.find(
+                            v => v.measurand === 'Energy.Active.Import.Register' &&
+                                v.unit === 'kWh'
+                        )?.value;
+
+                        if (energyValue) {
+                            const consumedKwh = parseFloat(energyValue);
+                            console.log(`🔋 Consumo atual: ${consumedKwh.toFixed(2)}kWh / Meta: ${userTransaction.targetKwh}kWh`);
+
+                            // Atualiza o consumo na transação do usuário
+                            userTransaction.consumedKwh = consumedKwh;
+                            await userTransaction.save();
+
+                            // Verifica se atingiu a meta
+                            if (consumedKwh >= userTransaction.targetKwh) {
+                                console.log(`🎯 Meta de ${userTransaction.targetKwh}kWh atingida!`);
+
+                                const stopResponse = await client.call('RemoteStopTransaction', {
+                                    transactionId
+                                });
+
+                                if (stopResponse.status === 'Accepted') {
+                                    // Atualiza ambas as transações
+                                    transaction.status = 'Completed';
+                                    transaction.endTime = new Date();
+                                    transaction.consumedKwh = consumedKwh;
+                                    await transaction.save();
+
+                                    userTransaction.status = 'Completed';
+                                    await userTransaction.save();
+
+                                    global.activeTransactions.delete(client.identity);
+                                    console.log('✅ Transação encerrada automaticamente');
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error(`❌ Erro no processamento:`, error);
+                }
 
                 return {};
             });
