@@ -12,7 +12,9 @@ const ChargingTransactionSchema = new mongoose.Schema({
     startTime: { type: Date, default: Date.now },
     endTime: { type: Date },
     meterValues: [MeterValueSchema],
-    status: { type: String, enum: ["Active", "Completed"], default: "Active" }
+    status: { type: String, enum: ["Active", "Completed"], default: "Active" },
+    targetKwh: Number,
+    consumedKwh: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model('ChargingTransaction', ChargingTransactionSchema);

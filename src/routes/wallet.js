@@ -41,30 +41,33 @@ const PAGARME_API_URL = 'https://api.pagar.me/core/v5';
  *         description: Erro interno do servidor
  */
 router.get('/:userId/balance', async (req, res) => {
-    console.log('Recebendo requisição para saldo do usuário:', req.params.userId);
     try {
         const wallet = await Wallet.findOne({ userId: req.params.userId });
+
         if (!wallet) {
-            // Retorna saldo 0 caso não exista
-            return res.json({ balance: 0, message: 'Saldo não encontrado, retornando 0' });
+            return res.json({ balance: 0, transactions: [] });
         }
 
-        wallet.transactions.map(tx => {
+        // Ordena as transações por data (mais recente primeiro)
+        const sortedTransactions = wallet.transactions.sort((a, b) =>
+            new Date(b.createdAt) - new Date(a.createdAt)
+        );
 
-            if (tx.status === 'pending') {
-                updateTransactionStatus(req.params.userId, tx?.transactionId);
+        // Atualiza pendentes
+        const pending = sortedTransactions.filter(tx => tx.status === 'pending');
+        if (pending.length > 0) {
+            await Promise.all(pending.map(tx =>
+                updateTransactionStatus(req.params.userId, tx.transactionId))
+            );
+            const updatedWallet = await Wallet.findOne({ userId: req.params.userId });
+            updatedWallet.transactions.sort((a, b) =>
+                new Date(b.createdAt) - new Date(a.createdAt)
+            );
+            return res.json(updatedWallet);
+        }
 
-                // const walletUpdated =  Wallet.findOne({ userId: req.params.userId });
-                // if (!walletUpdated) {
-                //     // Retorna saldo 0 caso não exista
-                //     return res.json({ balance: 0, message: 'Saldo não encontrado, retornando 0' });
-                // }
-                //
-                // res.json(walletUpdated)
-            }
-        });
+        res.json({ ...wallet.toObject(), transactions: sortedTransactions });
 
-        res.json(wallet);
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar carteira', error: error.message });
     }

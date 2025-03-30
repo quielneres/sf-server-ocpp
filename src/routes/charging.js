@@ -61,36 +61,17 @@ const MINIMUM_BALANCE = 30; // Valor mínimo para iniciar carregamento
  */
 router.post('/:id/start', async (req, res) => {
     try {
-        const { userId, latitude, longitude } = req.body;
+        // const { userId, latitude, longitude } = req.body;
+
+        const { userId, latitude, longitude, targetKwh } = req.body; // Adicionar targetKwh
         const chargerId = req.params.id;
-        // console.log('chargerId', chargerId);
         const client = global.ocppClients?.get(chargerId);
-
-
-
 
         if (!client) {
             return res.status(404).json({ message: `Carregador ${chargerId} não conectado.` });
         }
 
-        // 🔹 Verifica saldo do usuário
-        const wallet = await Wallet.findOne({ userId });
-        // if (!wallet || wallet.balance < MINIMUM_BALANCE) {
-        //     return res.status(400).json({ message: "Saldo insuficiente. Adicione créditos." });
-        // }
-
-
-        // 🔹 Verifica proximidade do usuário
-        // const charger = await Charger.findOne({ serialNumber: chargerId });
-        // if (!charger) return res.status(404).json({ message: "Carregador não encontrado." });
-
-        // const distance = getDistance(latitude, longitude, charger.latitude, charger.longitude);
-        // if (distance > 0.5) { // 500 metros
-        //     return res.status(400).json({ message: "Você precisa estar mais próximo do carregador." });
-        // }
-
         const idTag = generateIdTag();
-
 
         // 🔹 Envia comando para o carregador
         const response = await client.call('RemoteStartTransaction', {
@@ -100,9 +81,18 @@ router.post('/:id/start', async (req, res) => {
 
         if (response.status === 'Accepted') {
 
+            const amountToDeduct = targetKwh * 2;
+
+            let wallet = await Wallet.findOne({ userId });
+            if (wallet) {
+                wallet.balance -= amountToDeduct;
+                await wallet.save();
+            }
+
             const userTransaction = new UserTransaction({
                 userId,
-                idTag
+                idTag,
+                targetKwh
             });
 
             await userTransaction.save();
@@ -200,6 +190,79 @@ router.get('/charging-transactions/:transactionId', async (req, res) => {
         res.json(transaction);
     } catch (error) {
         res.status(500).json({ error: "Erro ao buscar transação" });
+    }
+});
+
+
+router.get('/sync-consumed/:transactionId', async (req, res) => {
+    try {
+        const transaction = await ChargingTransaction.findOne({
+            transactionId: req.params.transactionId
+        });
+
+        if (!transaction) {
+            return res.status(404).json({ error: "Transação não encontrada" });
+        }
+
+        res.json({
+            consumedKwh: transactionx.consumedKwh,
+            lastUpdated: transaction.updatedAt
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+/**
+ * @swagger
+ * /api/charging-transactions/active/{chargerId}:
+ *   get:
+ *     summary: Obtém a transação ativa de um carregador
+ *     tags: [Carregamento]
+ *     parameters:
+ *       - in: path
+ *         name: chargerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do carregador
+ *     responses:
+ *       200:
+ *         description: Transação ativa encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ChargingTransaction'
+ *       404:
+ *         description: Nenhuma transação ativa encontrada
+ *       500:
+ *         description: Erro interno do servidor
+ */
+router.get('/active/:chargerId', async (req, res) => {
+    try {
+        const chargerId = req.params.chargerId;
+
+        // Busca a transação ativa (status 'Active' ou sem endTime)
+        const activeTransaction = await ChargingTransaction.findOne({
+            chargerId,
+            status: 'Active',
+            endTime: { $exists: false }
+        }).sort({ startTime: -1 }); // Pega a mais recente
+
+        if (!activeTransaction) {
+            return res.status(404).json({
+                message: 'Nenhuma transação ativa encontrada para este carregador'
+            });
+        }
+
+        res.json(activeTransaction);
+    } catch (error) {
+        console.error('Erro ao buscar transação ativa:', error);
+        res.status(500).json({
+            message: 'Erro interno ao buscar transação ativa',
+            error: error.message
+        });
     }
 });
 

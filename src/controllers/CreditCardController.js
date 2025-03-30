@@ -3,13 +3,63 @@ const Card = require('../models/Card');
 const User = require('../models/User');
 const Wallet = require("../models/Wallet");
 const CreditCardTransaction = require("../models/CreditCardTransaction");
+const mongoose = require('mongoose');
 
+// Função auxiliar movida para cima para evitar problemas de hoisting
+const preparePayload = (amount, creditCard, user) => {
+    // Extrai mês e ano da data de expiração (formato MM/AA)
+    const [exp_month, exp_year] = creditCard.expirationDate.split('/');
 
-/**
- * Gera um pagamento via PIX para o usuário.
- * @param {object} req - A requisição Express.
- * @param {object} res - A resposta Express.
- */
+    return {
+        items: [
+            {
+                amount: Math.round(amount * 100), // Valor em centavos (inteiro)
+                description: `Recarga Eletroposto`,
+                quantity: 1,
+            }
+        ],
+        customer: {
+            name: user.name,
+            email: user.email,
+            document: user.cpf || '00000000000',
+            type: 'individual',
+            phones: {
+                mobile_phone: {
+                    country_code: '55',
+                    area_code: user.phone.substring(0, 2),
+                    number: user.phone.substring(2)
+                }
+            }
+        },
+        payments: [
+            {
+                payment_method: "credit_card",
+                credit_card: {
+                    recurrence_cycle: "first",
+                    installments: 1,
+                    statement_descriptor: "SOLFORT ELETRO",
+                    card: {
+                        // number: '4111111111111111',
+                        // number: '4000000000000010',
+                        number: creditCard.cardNumber.replace(/\s/g, ''),
+                        holder_name: creditCard.holderName,
+                        exp_month: parseInt(exp_month),
+                        exp_year: 30,
+                        cvv: creditCard.cvv,
+                        billing_address: {
+                            line_1: "Av. Paulista, 1000",
+                            zip_code: "01311000",
+                            city: "São Paulo",
+                            state: user.state || 'UF',
+                            country: 'BR'
+                        }
+                    }
+                }
+            }
+        ]
+    };
+};
+
 const creditCardDeposit = async (req, res) => {
     try {
         const { userId, creditCardId, amount } = req.body;
@@ -17,80 +67,32 @@ const creditCardDeposit = async (req, res) => {
         if (!amount || amount <= 0) {
             return res.status(400).json({ message: "O valor deve ser maior que zero." });
         }
-        const user = await User.findOne({ _id : userId});
 
+        const user = await User.findOne({ _id: userId });
         if (!user) {
             return res.status(400).json({ message: "Problema ao pesquisar usuário." });
         }
 
-        const creditCard = await Card.findOne({_id: creditCardId, userId: userId });
-
+        const creditCard = await Card.findOne({ _id: creditCardId, userId: userId });
         if (!creditCard) {
-            return res.status(400).json({ message: 'Problema ao pesquisar Cartão.'});
+            return res.status(400).json({ message: 'Problema ao pesquisar Cartão.' });
         }
 
-        const phone = user.phone;
-        const areaCode = phone.slice(0, 2);
-        const number = phone.slice(2);
+        const payload = preparePayload(amount, creditCard, user);
 
-        const expirationDate = creditCard.expirationDate;
 
-        if (!/^\d{2}\/\d{4}$/.test(expirationDate)) {
-            return res.status(400).json({ message: 'Formato de data de expiração inválido. Use MM/AAAA.'});
-        }
-
-        const exp_month = parseInt(expirationDate.slice(0, 2), 10);
-        const exp_year = parseInt(expirationDate.slice(-2), 10);
-
-        // Monta o payload para a ordem de pagamento via PIX
-        const payload = {
-                items: [
-                    {
-                        amount: amount * 100, // Valor em centavos
-                        description: `Recarga Eletroposto`,
-                        quantity: 1,
-                    }
-                ],
-                customer: {
-                    name: user.name,
-                    email: user.email,
-                },
-                payments: [
-                    {
-                        payment_method: "credit_card",
-                        credit_card: {
-                            recurrence_cycle: "first",
-                            installments: 1,
-                            statement_descriptor: "SolFort Eletropost",
-                            card: {
-                                number: "4000000000000010",
-                                holder_name: creditCard.holderName,
-                                exp_month: 1,
-                                exp_year: 30,
-                                cvv: creditCard.cvv,
-                                billing_address: {
-                                    line_1: "10880, Malibu Point, Malibu Central",
-                                    zip_code: "90265",
-                                    city: "Malibu",
-                                    state: "CA",
-                                    country: "US"
-                                }
-                            }
-                        }
-                    }
-                ]
-            };
-
+        // console.log('payload creditCardTransaction', payload);
 
         const result = await creditCardTransaction(payload);
 
+        console.log('result creditCardTransaction' ,result);
+
         if (result.status === 'failed') {
             const transaction = result.charges[0].last_transaction;
-
-            if (transaction.status === 'not_authorized' ) {
-                return res.status(400).json({ message: 'Não autorizado.'});
+            if (transaction.status === 'not_authorized') {
+                return res.status(400).json({ message: 'Não autorizado.' });
             }
-            return res.status(400).json({ message: 'Problema na transação.'});
+            return res.status(400).json({ message: 'Problema na transação.' });
         }
 
         const charge = result.charges[0];
@@ -101,125 +103,108 @@ const creditCardDeposit = async (req, res) => {
             wallet = new Wallet({ userId, transactions: [] });
         }
 
-
-        wallet.balance += amount;
-
-        wallet.transactions.push({
-            transactionId,
+        // Após verificar o status da transação
+        const transactionRecord = {
+            transactionId: charge.id,
             amount,
             type: 'deposit',
             status: charge.status,
-            paymentMethod: 'credit_card'
-        });
+            paymentMethod: 'credit_card',
+            gatewayResponse: result
+        };
 
+        if (charge.status === 'paid') {
+            wallet.balance += amount;
+        }
+
+        wallet.transactions.push(transactionRecord);
         await wallet.save();
-        console.log("💾 Transação salva no banco de dados.");
 
-        res.json({ message: "Trasação realiza com sucesso!", ...result });
+        return {
+            status: result.charges[0].status,
+            transactionId: result.charges[0].id,
+            amount,
+            gatewayResponse: result
+        };
+
+        // res.json({ message: "Transação realizada com sucesso!", ...result });
     } catch (error) {
-        console.error("Erro no PixController.pixGenerate:", error.response?.data || error.message);
-        res.status(500).json({ message: "Erro na transacão. Tente novamente." });
+        console.error("Erro no CreditCardController.creditCardDeposit:", error.response?.data || error.message);
+        res.status(500).json({ message: "Erro na transação. Tente novamente." });
     }
 };
 
 const chargeWithCreditCard = async (req, res) => {
     try {
-        const { userId, creditCardId,  amount, } = req.body;
+        const { userId, creditCardId, amount } = req.body;
 
-        const user = await User.findOne({ _id : userId});
+        // Verifique se os IDs são válidos
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: 'ID de usuário inválido' });
+        }
+        if (!mongoose.Types.ObjectId.isValid(creditCardId)) {
+            return res.status(400).json({ message: 'ID de cartão inválido' });
+        }
 
+        const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ message: "Usuário não encontrado." });
         }
 
-        const creditCard = await Card.findOne({_id: creditCardId, userId: userId });
-
+        const creditCard = await Card.findOne({ _id: creditCardId, userId: userId });
         if (!creditCard) {
-            return res.status(400).json({ message: 'Problema ao pesquisar Cartão.'});
+            return res.status(400).json({ message: 'Cartão não encontrado ou não pertence ao usuário.' });
         }
 
         const payload = preparePayload(amount, creditCard, user);
+        console.log('payload creditCardTransaction', payload);
 
         const result = await creditCardTransaction(payload);
 
         if (result.status === 'failed') {
             const transaction = result.charges[0].last_transaction;
-
-            if (transaction.status === 'not_authorized' ) {
-                return res.status(400).json({ message: 'Não autorizado.'});
+            if (transaction.status === 'not_authorized') {
+                return res.status(400).json({ message: 'Transação não autorizada.' });
             }
-            return res.status(400).json({ message: 'Problema na transação.'});
+            return res.status(400).json({ message: 'Falha na transação.' });
         }
 
         const charge = result.charges[0];
-        const transactionId = charge.id;
-        const transaction = result.charges[0].last_transaction;
 
+        let wallet = await Wallet.findOne({ userId });
+        if (!wallet) {
+            wallet = new Wallet({ userId, transactions: [] });
+        }
 
-        let creditCardTransaction = await new CreditCardTransaction(
-            {
-                userId,
-                creditCardId,
-                amount,
-                transactions: []
-            }
-        );
-
-        creditCardTransaction.transactions.push({
-            transactionId,
+        // Após verificar o status da transação
+        const transactionRecord = {
+            transactionId: charge.id,
             amount,
             type: 'deposit',
             status: charge.status,
-            paymentMethod: 'credit_card'
+            paymentMethod: 'credit_card',
+            gatewayResponse: result
+        };
+
+        if (charge.status === 'paid') {
+            wallet.balance += amount;
+        }
+
+        wallet.transactions.push(transactionRecord);
+        await wallet.save();
+
+        res.json({
+            message: "Transação realizada com sucesso!",
+            transactionId: charge.id,
+            amount: amount
         });
-
-        await creditCardTransaction.save();
-
-        res.json({ message: "Trasação realizada com sucesso!" });
     } catch (error) {
-        console.error("Erro no PixController.pixGenerate:", error.response?.data || error.message);
-        res.status(500).json({ message: "Erro na transação. Tente novamente." });
+        console.error("Erro no chargeWithCreditCard:", error);
+        res.status(500).json({
+            message: "Erro na transação",
+            error: error.message
+        });
     }
 };
 
-const preparePayload = (amount, creditCard, user) => {
-    return {
-        items: [
-            {
-                amount: amount * 100, // Valor em centavos
-                description: `Recarga Eletroposto`,
-                quantity: 1,
-            }
-        ],
-        customer: {
-            name: user.name,
-            email: user.email,
-        },
-        payments: [
-            {
-                payment_method: "credit_card",
-                credit_card: {
-                    recurrence_cycle: "first",
-                    installments: 1,
-                    statement_descriptor: "SolFort Eletropost",
-                    card: {
-                        number: "4000000000000010",
-                        holder_name: creditCard.holderName,
-                        exp_month: 1,
-                        exp_year: 30,
-                        cvv: creditCard.cvv,
-                        billing_address: {
-                            line_1: "10880, Malibu Point, Malibu Central",
-                            zip_code: "90265",
-                            city: "Malibu",
-                            state: "CA",
-                            country: "US"
-                        }
-                    }
-                }
-            }
-        ]
-    };
-};
-
-module.exports = { creditCardDeposit, chargeWithCreditCard};
+module.exports = { creditCardDeposit, chargeWithCreditCard };
