@@ -9,18 +9,57 @@ class UserController {
      */
     static async register(req, res) {
         try {
-            const { name, cpf, email, password, phone, address } = req.body;
+            const {
+                name,
+                cpf,
+                email,
+                password,
+                phone_ddd,
+                phone_number,
+                termsAccepted
+            } = req.body;
 
-            if (!name || !cpf || !email || !password || !phone || !address) {
-                return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+            // Validação básica dos campos obrigatórios
+            const requiredFields = ['name', 'cpf', 'email', 'password', 'phone_ddd', 'phone_number'];
+            const missingFields = requiredFields.filter(field => !req.body[field]);
+
+            if (missingFields.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Todos os campos são obrigatórios',
+                    missingFields
+                });
             }
 
-            const result = await UserService.registerUser({ name, cpf, email, password, phone, address });
+            // Verifica se os termos foram aceitos
+            if (termsAccepted !== true) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Você deve aceitar os termos de uso'
+                });
+            }
 
-            res.status(201).json(result);
+
+            const result = await UserService.registerUser({
+                name,
+                cpf,
+                email,
+                password,
+                phone_ddd,
+                phone_number,
+                termsAccepted
+            });
+
+            return res.status(201).json(result);
+
         } catch (error) {
-            console.error('Erro ao cadastrar usuário:', error);
-            res.status(500).json({ message: error.message || 'Erro ao cadastrar usuário' });
+            console.error('Erro no UserController:', error);
+
+            return res.status(500).json({
+                success: false,
+                message: error.message || 'Erro ao cadastrar usuário',
+                errorType: error.name || 'InternalServerError'
+            });
         }
     }
 

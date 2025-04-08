@@ -2,11 +2,12 @@ const { creditCardTransaction } = require('../services/CreditCardService');
 const Card = require('../models/Card');
 const User = require('../models/User');
 const Wallet = require("../models/Wallet");
+const Address = require("../models/Address");
 const CreditCardTransaction = require("../models/CreditCardTransaction");
 const mongoose = require('mongoose');
 
 // Função auxiliar movida para cima para evitar problemas de hoisting
-const preparePayload = (amount, creditCard, user) => {
+const preparePayload = (amount, creditCard, user, address) => {
     // Extrai mês e ano da data de expiração (formato MM/AA)
     const [exp_month, exp_year] = creditCard.expirationDate.split('/');
 
@@ -26,8 +27,8 @@ const preparePayload = (amount, creditCard, user) => {
             phones: {
                 mobile_phone: {
                     country_code: '55',
-                    area_code: user.phone.substring(0, 2),
-                    number: user.phone.substring(2)
+                    area_code: user.phone_ddd,
+                    number: user.phone_number
                 }
             }
         },
@@ -47,9 +48,9 @@ const preparePayload = (amount, creditCard, user) => {
                         exp_year: 30,
                         cvv: creditCard.cvv,
                         billing_address: {
-                            line_1: "Av. Paulista, 1000",
-                            zip_code: "01311000",
-                            city: "São Paulo",
+                            line_1: address?.neighborhood || "Av. Paulista, 1000",
+                            zip_code: address?.cep || "01311000",
+                            city: address?.city || "São Paulo",
                             state: user.state || 'UF',
                             country: 'BR'
                         }
@@ -78,7 +79,12 @@ const creditCardDeposit = async (req, res) => {
             return res.status(400).json({ message: 'Problema ao pesquisar Cartão.' });
         }
 
-        const payload = preparePayload(amount, creditCard, user);
+        const address = await Address.findOne({ userId });
+        if (!address) {
+            return res.status(400).json({ message: 'Informe um endereço para realizar a transação.' });
+        }
+
+        const payload = preparePayload(amount, creditCard, user, address);
 
 
         // console.log('payload creditCardTransaction', payload);
@@ -151,12 +157,20 @@ const chargeWithCreditCard = async (req, res) => {
             return res.status(404).json({ message: "Usuário não encontrado." });
         }
 
+        const address = await Address.findOne({ user: userId });
+        if (!address) {
+            return res.status(400).json({ message: 'Informe um endereço para realizar a transação.' });
+        }
+
+        // console.log('address 1', address  );
+        // return;
+
         const creditCard = await Card.findOne({ _id: creditCardId, userId: userId });
         if (!creditCard) {
             return res.status(400).json({ message: 'Cartão não encontrado ou não pertence ao usuário.' });
         }
 
-        const payload = preparePayload(amount, creditCard, user);
+        const payload = preparePayload(amount, creditCard, user, address);
         console.log('payload creditCardTransaction', payload);
 
         const result = await creditCardTransaction(payload);
