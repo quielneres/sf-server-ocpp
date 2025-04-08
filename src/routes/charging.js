@@ -9,6 +9,37 @@ const UserTransaction = require('../models/UserTransaction');
 
 const MINIMUM_BALANCE = 30; // Valor mínimo para iniciar carregamento
 
+
+router.get('/history/:userId', async (req, res) => {
+    try {
+        const userTransactions = await UserTransaction.find({ userId: req.params.userId });
+        const idTags = userTransactions.map(ut => ut.idTag);
+        const relatedTransactions = await ChargingTransaction.find({ idTag: { $in: idTags } });
+
+        // Criar um array de promessas para buscar os carregadores
+        const enrichedTransactions = await Promise.all(
+            relatedTransactions.map(async (tx) => {
+                const charger = await Charger.findOne({ serialNumber: tx.chargerId });
+                return {
+                    ...tx.toObject(), // Convertendo o Mongoose doc para objeto simples
+                    chargerName: charger?.description || 'Desconhecido'
+                };
+            })
+        );
+
+        res.json({
+            message: "Transações listadas com sucesso!",
+            transactions: enrichedTransactions
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Erro ao listar transações",
+            error: error.message
+        });
+    }
+});
+
+
 /**
  * @swagger
  * tags:

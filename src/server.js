@@ -15,10 +15,7 @@ const PORT = 4000;
 app.use(express.json());
 
 // Conectar ao MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
+mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log(' MongoDB conectado'))
     .catch(err => console.error(' Erro ao conectar no MongoDB:', err));
 
@@ -45,6 +42,9 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/cards', require('./routes/cardRoutes'));
 app.use('/api/cars', require('./routes/cars'));
 app.use('/api/pix', require('./routes/pix'));
+
+const addressRoutes = require('./routes/addressRoutes');
+app.use('/api/addresses', addressRoutes);
 
 const logsRouter = require("./routes/logs"); // 🔹 Agora importa corretamente
 app.use("/api/logs", logsRouter); // 🔹 Agora funciona sem erro

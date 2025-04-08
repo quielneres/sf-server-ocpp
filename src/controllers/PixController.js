@@ -21,9 +21,8 @@ const pixGenerate = async (req, res) => {
             return res.status(400).json({ message: "Problema ao pesquisar usuário." });
         }
 
-        const phone = user.phone;
-        const areaCode = phone.slice(0, 2);
-        const number = phone.slice(2);
+        const areaCode = user.phone_ddd;
+        const number = user.phone_number;
 
         // Monta o payload para a ordem de pagamento via PIX
         const payload = {

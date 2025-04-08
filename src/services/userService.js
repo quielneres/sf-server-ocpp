@@ -9,17 +9,61 @@ class UserService {
      * @returns {Object} - Objeto com o resultado do cadastro.
      */
     static async registerUser(userData) {
-        const { email, cpf } = userData;
+        try {
+            const { email, cpf, phone_ddd, phone_number } = userData;
 
-        const existingUser = await User.findOne({ $or: [{ email }, { cpf }] });
-        if (existingUser) {
-            throw new Error('Usuário já cadastrado com este e-mail ou CPF');
+            // Verifica se usuário já existe
+            const existingUser = await User.findOne({
+                $or: [
+                    { email },
+                    { cpf },
+                    { phone_ddd, phone_number } // Opcional: evitar duplicação de telefone
+                ]
+            });
+
+            if (existingUser) {
+                let errorField = '';
+                if (existingUser.email === email) errorField = 'e-mail';
+                else if (existingUser.cpf === cpf) errorField = 'CPF';
+                else errorField = 'telefone';
+
+                throw new Error(`Já existe um usuário cadastrado com este ${errorField}`);
+            }
+
+            // Cria e salva o novo usuário
+            const newUser = new User({
+                name: userData.name,
+                cpf: userData.cpf,
+                email: userData.email.toLowerCase(),
+                password: userData.password,
+                phone_ddd: userData.phone_ddd,
+                phone_number: userData.phone_number,
+                termsAccepted: userData.termsAccepted || false
+            });
+
+            await newUser.save();
+
+            // Remove a senha do objeto de retorno
+            const userToReturn = newUser.toObject();
+            delete userToReturn.password;
+
+            return {
+                success: true,
+                message: 'Usuário cadastrado com sucesso!',
+                user: userToReturn
+            };
+
+        } catch (error) {
+            console.error('Erro no UserService:', error);
+
+            // Trata erros de validação do Mongoose
+            if (error.name === 'ValidationError') {
+                const errors = Object.values(error.errors).map(err => err.message);
+                throw new Error(`Erro de validação: ${errors.join(', ')}`);
+            }
+
+            throw error; // Reenvia outros erros
         }
-
-        const newUser = new User(userData);
-        await newUser.save();
-
-        return { message: 'Usuário cadastrado com sucesso!', user: newUser };
     }
 
     /**
