@@ -6,6 +6,7 @@ const chargersRouter = require('./routes/chargers');
 const swaggerDocs = require('./utils/swagger');
 // const startConsumer = require("./consumers/meterValuesConsumer");
 const { startConsumer } = require("./consumers/meterValuesConsumer"); // 🔹 Corrigir importação
+const path = require('path');
 
 dotenv.config();
 
@@ -46,9 +47,17 @@ app.use('/api/pix', require('./routes/pix'));
 const addressRoutes = require('./routes/addressRoutes');
 app.use('/api/addresses', addressRoutes);
 
+
+
 const logsRouter = require("./routes/logs"); // 🔹 Agora importa corretamente
 app.use("/api/logs", logsRouter); // 🔹 Agora funciona sem erro
 
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Rota opcional para acessar como /termo
+app.get('/termo', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/termo.html'));
+});
 
 
 //Documentação Swagger
