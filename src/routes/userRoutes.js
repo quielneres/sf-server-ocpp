@@ -132,6 +132,8 @@ const router = express.Router();
  */
 router.post('/register', UserController.register);
 
+router.post('/update/:userId', UserController.update);
+
 router.post('/accept-terms', UserController.acceptTerms);
 
 router.post('/change-password', UserController.changePassword);

@@ -9,11 +9,17 @@ const { startConsumer } = require("./consumers/meterValuesConsumer"); // 🔹 Co
 const path = require('path');
 
 dotenv.config();
+const cors = require('cors');
 
 const app = express();
 // const PORT = process.env.PORT || 80;
 const PORT = 4000;
 app.use(express.json());
+app.use(cors({
+    origin: '*', // ou: ['http://localhost:19006'] para restringir
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Conectar ao MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -54,11 +60,20 @@ app.use("/api/logs", logsRouter); // 🔹 Agora funciona sem erro
 
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Rota opcional para acessar como /termo
-app.get('/termo', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/termo.html'));
+// // Rota opcional para acessar como /termo
+app.get('/termo-de-uso', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/terms.html'));
 });
 
+app.get('/politica-de-privacidade', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/privacy-policy.html'));
+});
+
+
+
+// app.get('/dashboard', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../public/dist/index.html'));
+// });
 
 //Documentação Swagger
 swaggerDocs(app);

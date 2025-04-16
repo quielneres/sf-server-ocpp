@@ -148,6 +148,18 @@ class UserController {
             res.status(500).json({ message: error.message || 'Erro ao redefinir senha' });
         }
     }
+
+    static async update(req, res) {
+        try {
+            const {userId} = req.params;
+            const {name, phone_ddd, phone_number} = req.body;
+            const result = await UserService.updateUser(userId, name, phone_ddd, phone_number);
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Erro ao atualizar usuário:', error);
+            res.status(500).json({message: error.message || 'Erro ao atualizar usuário'});
+        }
+    }
 }
 
 module.exports = UserController;

@@ -180,6 +180,28 @@ class UserService {
 
         await transporter.sendMail(mailOptions);
     }
+
+    static async updateUser(userId, userData) {
+
+        try {
+            // Busca o usuário pelo ID
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('Usuário nao encontrado');
+            }
+            // Atualiza os dados do usuário
+            user.name = userData.name;
+            user.phone_ddd = userData.phone_ddd;
+            user.phone_number = userData.phone_number;
+            await user.save();
+
+            return { success: true, message: 'Usuário atualizado com sucesso' };
+        } catch (error) {
+            console.error('Erro ao atualizar usuário:', error);
+            throw new Error(error.message || 'Erro ao atualizar usuário');
+        }
+
+    }
 }
 
 module.exports = UserService;
