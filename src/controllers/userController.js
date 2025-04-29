@@ -1,5 +1,6 @@
 const UserService = require('../services/userService');
 const User = require('../models/User');
+const UserFavoriteService = require("../services/userFavoriteService");
 
 class UserController {
     /**
@@ -158,6 +159,21 @@ class UserController {
         } catch (error) {
             console.error('Erro ao atualizar usuário:', error);
             res.status(500).json({message: error.message || 'Erro ao atualizar usuário'});
+        }
+    }
+
+    static async favorites(req, res) {
+        try {
+            const { userId } = req.params;
+            const result = await UserFavoriteService.getFavorites(userId);
+
+            if (result.length === 0) {
+                return res.status(200).json({ message: 'Nenhum favorito encontrado', favorites: [] });
+            }
+
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(500).json({ message: error.message || 'Erro ao buscar favoritos' });
         }
     }
 }

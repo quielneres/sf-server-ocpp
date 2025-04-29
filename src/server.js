@@ -70,6 +70,11 @@ app.get('/politica-de-privacidade', (req, res) => {
 });
 
 
+app.use(express.static(path.join(__dirname, '../public/site')));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/site/index.html'));
+});
+
 
 // app.get('/dashboard', (req, res) => {
 //     res.sendFile(path.join(__dirname, '../public/dist/index.html'));
