@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Excluir Conta - Sol Fort Plug Charger</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="container">
+    <img src="logo.png" alt="Sol Fort Plug Charger" class="logo" />
+
+    <h1>Solicitação de Exclusão de Conta</h1>
+    <p class="subtitle">Se deseja excluir sua conta, preencha o formulário abaixo. Entraremos em contato com a confirmação.</p>
+
+    <form action="/solicitar-exclusao" method="POST" class="form">
+        <label for="email">Seu e-mail:</label>
+        <input type="email" id="email" name="email" placeholder="seuemail@exemplo.com" required />
+
+        <label for="motivo">Motivo da exclusão (opcional):</label>
+        <textarea id="motivo" name="motivo" rows="4" placeholder="Conte-nos por que deseja sair..."></textarea>
+
+        <button type="submit" class="button">Solicitar exclusão</button>
+    </form>
+</div>
+</body>
+</html>
