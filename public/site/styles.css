@@ -105,6 +105,55 @@ main {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
+form {
+    background-color: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    color: #1F2937;
+    font-weight: 600;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: #F9FAFB;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #00C896;
+    background-color: #ffffff;
+}
+
+.button {
+    background-color: #00C896;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.button:hover {
+    background-color: #009A73;
+}
+
+
 
 
 footer {

@@ -75,6 +75,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/site/index.html'));
 });
 
+app.get('/solicitar-exclusao', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/site/delete-account.html'));
+});
+
 
 // app.get('/dashboard', (req, res) => {
 //     res.sendFile(path.join(__dirname, '../public/dist/index.html'));
