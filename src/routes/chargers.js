@@ -75,6 +75,46 @@ router.post('/', async (req, res) => {
     }
 });
 
+router.post('/:chargerId/update', async (req, res) => {
+    try {
+
+        let charger = await Charger.findOne({ _id: req.params.chargerId });
+        if (!charger) {
+            return res.status(400).json({ message: 'Carregador nao encontrado.' });
+        }
+
+        const {
+            name, serialNumber, vendor, model, latitude, longitude, description,
+            address, openingHours, connectorType, powerKw, pricePerKw
+        } = req.body;
+
+        if (!name || !serialNumber || !vendor || !model || !latitude || !longitude || !address || !openingHours || !connectorType || !powerKw || !pricePerKw) {
+            return res.status(400).json({ message: 'Todos os campos obrigatórios devem ser preenchidos.' });
+        }
+
+        charger.name = name;
+        charger.serialNumber = serialNumber;
+        charger.vendor = vendor;
+        charger.model = model;
+        charger.latitude = latitude;
+        charger.longitude = longitude;
+        charger.description = description;
+        charger.address = address;
+        charger.openingHours = openingHours;
+        charger.connectorType = connectorType;
+        charger.powerKw = powerKw;
+        charger.pricePerKw = pricePerKw;
+
+        await charger.save();
+        res.status(201).json({ message: 'Carregador atualizado com sucesso!', charger: charger });
+
+
+    } catch (error) {
+        console.error('❌ Erro ao atualizar carregador:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+});
+
 /**
  * @swagger
  * /api/chargers/{id}:
