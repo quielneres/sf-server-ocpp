@@ -39,7 +39,7 @@ const preparePayload = (amount, creditCard, user, address) => {
                 credit_card: {
                     recurrence_cycle: "first",
                     installments: 1,
-                    statement_descriptor: "SOLFORT ELETRO",
+                    statement_descriptor: "SOLFORT",
                     card: {
                         // number: '4111111111111111',
                         // number: '4000000000000010',
