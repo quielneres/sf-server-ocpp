@@ -46,7 +46,7 @@ const preparePayload = (amount, creditCard, user, address) => {
                         number: creditCard.cardNumber.replace(/\s/g, ''),
                         holder_name: creditCard.holderName,
                         exp_month: parseInt(exp_month),
-                        exp_year: 30,
+                        exp_year: exp_year,
                         cvv: creditCard.cvv,
                         billing_address: {
                             line_1: address?.neighborhood || "Av. Paulista, 1000",
