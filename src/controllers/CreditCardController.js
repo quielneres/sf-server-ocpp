@@ -14,6 +14,7 @@ const preparePayload = (amount, creditCard, user, address) => {
     return {
         items: [
             {
+                code: `RECARGA_${Date.now()}`,
                 amount: Math.round(amount * 100), // Valor em centavos (inteiro)
                 description: `Recarga Eletroposto`,
                 quantity: 1,
