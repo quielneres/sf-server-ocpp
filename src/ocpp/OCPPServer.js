@@ -4,6 +4,7 @@ const { handleMeterValues } = require("./handlers");
 const amqp = require('amqplib');
 const ChargingTransaction = require('../models/ChargingTransaction');
 const UserTransaction = require('../models/UserTransaction');
+const Wallet = require('../models/Wallet');
 const { addLog } = require("../routes/logs");
 
 class OCPPServer {
@@ -149,14 +150,65 @@ class OCPPServer {
 
                 try {
                     const transaction = await ChargingTransaction.findOne({ transactionId });
-
-                    if (transaction) {
-                        transaction.endTime = new Date();
-                        transaction.status = 'Completed';
-                        await transaction.save();
-                        console.info(`✅ Transação finalizada: ${transactionId}`);
-                    } else {
+                    if (!transaction) {
                         console.warn(`⚠️ Transação ${transactionId} não encontrada no banco.`);
+                        return { idTagInfo: { status: "Rejected" } };
+                    }
+
+                    // Atualiza dados da transação
+                    transaction.endTime = new Date();
+                    transaction.status = 'Completed';
+
+                    // Captura consumo final (do meterStop ou do último registro)
+                    let consumedKwh = 0;
+                    if (params.meterStop) {
+                        const energyValue = params.meterStop.find(
+                            v => v.measurand === 'Energy.Active.Import.Register' &&
+                                v.unit === 'kWh'
+                        )?.value;
+
+                        if (energyValue) {
+                            consumedKwh = parseFloat(energyValue);
+                            transaction.consumedKwh = consumedKwh;
+                        }
+                    }
+
+                    await transaction.save();
+
+                    // Busca a transação do usuário e atualiza
+                    const userTransaction = await UserTransaction.findOne({
+                        idTag: transaction.idTag,
+                        status: 'Active'
+                    });
+
+                    if (userTransaction) {
+                        // Se não encontrou consumo no meterStop, usa o que já estava na transação
+                        if (consumedKwh === 0 && transaction.consumedKwh) {
+                            consumedKwh = transaction.consumedKwh;
+                        }
+
+                        // Atualiza a transação do usuário
+                        userTransaction.consumedKwh = consumedKwh;
+                        userTransaction.status = 'Completed';
+                        userTransaction.endTime = transaction.endTime;
+                        await userTransaction.save();
+
+                        if (consumedKwh > 0) {
+
+                            const charger = await Charger.findOne({ serialNumber: client.identity }).lean();
+                            const pricePerKwh = charger?.pricePerKw ?? 2; // Valor padrão de R$2 se não definido
+                            const amountToDeduct = parseFloat((consumedKwh * pricePerKwh).toFixed(2));
+
+                            const wallet = await Wallet.findOne({ userId: userTransaction.userId });
+
+                            if (wallet) {
+                                wallet.balance -= amountToDeduct;
+                                await wallet.save();
+                                console.log(`💰 Débito de R$${amountToDeduct} realizado na carteira do usuário ${userTransaction.userId}`);
+                            } else {
+                                console.warn(`⚠️ Carteira não encontrada para o usuário ${userTransaction.userId}`);
+                            }
+                        }
                     }
 
                     global.activeTransactions.delete(client.identity);
