@@ -162,14 +162,18 @@ class OCPPServer {
                     // Captura consumo final (do meterStop ou do último registro)
                     let consumedKwh = 0;
                     if (params.meterStop) {
-                        const energyValue = params.meterStop.find(
-                            v => v.measurand === 'Energy.Active.Import.Register' &&
-                                v.unit === 'kWh'
-                        )?.value;
+                        // Verifica se é array (OCPP 1.6) ou objeto (algumas implementações)
+                        const meterValues = Array.isArray(params.meterStop) ? params.meterStop : [params.meterStop];
 
-                        if (energyValue) {
-                            consumedKwh = parseFloat(energyValue);
+                        // Encontra o valor de energia (protegido contra undefined)
+                        const energyEntry = meterValues
+                            .flatMap(mv => mv.sampledValue || [])
+                            .find(sv => sv.measurand === 'Energy.Active.Import.Register' && sv.unit === 'kWh');
+
+                        if (energyEntry?.value) {
+                            consumedKwh = parseFloat(energyEntry.value);
                             transaction.consumedKwh = consumedKwh;
+                            console.log(`🔋 Consumo final registrado: ${consumedKwh}kWh`);
                         }
                     }
 
@@ -193,22 +197,22 @@ class OCPPServer {
                         userTransaction.endTime = transaction.endTime;
                         await userTransaction.save();
 
-                        if (consumedKwh > 0) {
-
-                            const charger = await Charger.findOne({ serialNumber: client.identity }).lean();
-                            const pricePerKwh = charger?.pricePerKw ?? 2; // Valor padrão de R$2 se não definido
-                            const amountToDeduct = parseFloat((consumedKwh * pricePerKwh).toFixed(2));
-
-                            const wallet = await Wallet.findOne({ userId: userTransaction.userId });
-
-                            if (wallet) {
-                                wallet.balance -= amountToDeduct;
-                                await wallet.save();
-                                console.log(`💰 Débito de R$${amountToDeduct} realizado na carteira do usuário ${userTransaction.userId}`);
-                            } else {
-                                console.warn(`⚠️ Carteira não encontrada para o usuário ${userTransaction.userId}`);
-                            }
-                        }
+                        // if (consumedKwh > 0) {
+                        //
+                        //     const charger = await Charger.findOne({ serialNumber: client.identity }).lean();
+                        //     const pricePerKwh = charger?.pricePerKw ?? 2; // Valor padrão de R$2 se não definido
+                        //     const amountToDeduct = parseFloat((consumedKwh * pricePerKwh).toFixed(2));
+                        //
+                        //     const wallet = await Wallet.findOne({ userId: userTransaction.userId });
+                        //
+                        //     if (wallet) {
+                        //         wallet.balance -= amountToDeduct;
+                        //         await wallet.save();
+                        //         console.log(`💰 Débito de R$${amountToDeduct} realizado na carteira do usuário ${userTransaction.userId}`);
+                        //     } else {
+                        //         console.warn(`⚠️ Carteira não encontrada para o usuário ${userTransaction.userId}`);
+                        //     }
+                        // }
                     }
 
                     global.activeTransactions.delete(client.identity);
