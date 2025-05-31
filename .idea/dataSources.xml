@@ -15,5 +15,12 @@
       <jdbc-url>mongodb://localhost:27017</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="solfort-db@solfort.nr2nl.mongodb.net" uuid="51d84b1c-7f4d-444e-9033-ca4ccd33856e">
+      <driver-ref>mongo.4</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.dbschema.MongoJdbcDriver</jdbc-driver>
+      <jdbc-url>mongodb+srv://solfort.nr2nl.mongodb.net/solfort-db?retryWrites=true&amp;w=majority&amp;appName=solfort</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

@@ -92,9 +92,7 @@ router.get('/history/:userId', async (req, res) => {
  */
 router.post('/:id/start', async (req, res) => {
     try {
-        // const { userId, latitude, longitude } = req.body;
-
-        const { userId, latitude, longitude, targetKwh } = req.body; // Adicionar targetKwh
+        const { userId, latitude, longitude, targetKwh } = req.body;
         const chargerId = req.params.id;
         const client = global.ocppClients?.get(chargerId);
 
@@ -104,26 +102,23 @@ router.post('/:id/start', async (req, res) => {
 
         const idTag = generateIdTag();
 
-        // 🔹 Envia comando para o carregador
+        // Verifica saldo suficiente (sem deduzir ainda)
+        const wallet = await Wallet.findOne({ userId });
+        if (wallet && wallet.balance < MINIMUM_BALANCE) {
+            return res.status(400).json({ message: "Saldo insuficiente para iniciar carregamento." });
+        }
+
         const response = await client.call('RemoteStartTransaction', {
             connectorId: 1,
             idTag
         });
 
         if (response.status === 'Accepted') {
-
-            const amountToDeduct = targetKwh * 2;
-
-            let wallet = await Wallet.findOne({ userId });
-            if (wallet) {
-                wallet.balance -= amountToDeduct;
-                await wallet.save();
-            }
-
             const userTransaction = new UserTransaction({
                 userId,
                 idTag,
-                targetKwh
+                targetKwh,
+                status: 'Active'
             });
 
             await userTransaction.save();
@@ -185,24 +180,17 @@ router.post('/:id/stop', async (req, res) => {
             return res.status(404).json({ message: `Carregador ${chargerId} não conectado.` });
         }
 
-        // 🔹 Recupera o transactionId armazenado
         const transactionId = global.activeTransactions.get(chargerId);
-
         if (!transactionId) {
             return res.status(400).json({ message: "Nenhuma transação ativa encontrada para este carregador." });
         }
 
-        // 🔹 Envia o comando para encerrar o carregamento
         const response = await client.call('RemoteStopTransaction', { transactionId });
 
-        console.log("🔹 Resposta do RemoteStopTransaction:", response);
-
         if (response.status === 'Accepted') {
-            // 🔹 Remove a transação ativa após o encerramento
-            global.activeTransactions.delete(chargerId);
-            res.json({ message: "Carregamento encerrado com sucesso!" });
+            res.json({ message: "Comando para encerrar carregamento enviado com sucesso!" });
         } else {
-            res.status(400).json({ message: "Falha ao encerrar carregamento." });
+            res.status(400).json({ message: "Falha ao enviar comando para encerrar carregamento." });
         }
     } catch (error) {
         res.status(500).json({ message: "Erro ao encerrar carregamento", error: error.message });
