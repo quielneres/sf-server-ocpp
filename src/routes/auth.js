@@ -111,16 +111,16 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: "Usuário não encontrado" });
         }
 
-        // const passwordMatch = await bcrypt.compare(password, user.password);
-        //
-        // if (!passwordMatch) {
-        //     return res.status(401).json({ message: "Senha incorreta" });
-        // }
+        const passwordMatch = await bcrypt.compare(password, user.password);
 
-        //validaccao provisoria
-        if ( user.password !== password) {
+        if (!passwordMatch) {
             return res.status(401).json({ message: "Senha incorreta" });
         }
+
+        //validaccao provisoria
+        // if ( user.password !== password) {
+        //     return res.status(401).json({ message: "Senha incorreta" });
+        // }
 
         res.status(200).json({ message: "Login bem-sucedido", user: user});
     } catch (error) {

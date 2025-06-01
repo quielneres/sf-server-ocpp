@@ -135,13 +135,19 @@ class UserController {
      */
     static async resetPassword(req, res) {
         try {
-            const { token, newPassword } = req.body;
+            // const { token, newPassword } = req.body;
 
-            if (!token || !newPassword) {
-                return res.status(400).json({ message: 'Token e nova senha são obrigatórios' });
+            // if (!token || !newPassword) {
+            //     return res.status(400).json({ message: 'Token e nova senha são obrigatórios' });
+            // }
+
+            const { cpf, email, password }  = req.body;
+
+            if (!cpf || !email || !password) {
+                return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
             }
 
-            const result = await UserService.resetPassword(token, newPassword);
+            const result = await UserService.resetPassword( cpf, email, password);
 
             res.status(200).json(result);
         } catch (error) {
