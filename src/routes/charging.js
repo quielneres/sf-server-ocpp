@@ -96,39 +96,94 @@ router.post('/:id/start', async (req, res) => {
         const chargerId = req.params.id;
         const client = global.ocppClients?.get(chargerId);
 
+        // Validações iniciais
         if (!client) {
-            return res.status(404).json({ message: `Carregador ${chargerId} não conectado.` });
+            return res.status(404).json({
+                message: `Carregador ${chargerId} não conectado.`,
+                errorCode: 'CHARGER_OFFLINE'
+            });
         }
 
+        const charger = await Charger.findOne({ serialNumber: chargerId });
+        if (!charger) {
+            return res.status(404).json({
+                message: `Carregador ${chargerId} não encontrado.`,
+                errorCode: 'CHARGER_NOT_FOUND'
+            });
+        }
+
+        // Correção principal: Mudar para status 400
+        if (charger.status !== 'Preparing') {
+            // return res.status(400).json({
+            //     message: `Carregador ${chargerId} não está pronto.`,
+            //     status: charger.status,
+            //     errorCode: 'CHARGER_NOT_READY'
+            // });
+
+            return res.status(200).json({
+                message: `Carregador ${chargerId} não está pronto.`,
+                status: charger.status,
+                errorCode: 'CHARGER_NOT_READY'
+            });
+        }
+
+        // Verificação de saldo
+        // const wallet = await Wallet.findOne({ userId });
+        // if (wallet && wallet.balance < MINIMUM_BALANCE) {
+        //     return res.status(402).json({
+        //         message: "Saldo insuficiente para iniciar carregamento.",
+        //         errorCode: 'INSUFFICIENT_BALANCE'
+        //     });
+        // }
+
+        // Inicia transação
         const idTag = generateIdTag();
-
-        // Verifica saldo suficiente (sem deduzir ainda)
-        const wallet = await Wallet.findOne({ userId });
-        if (wallet && wallet.balance < MINIMUM_BALANCE) {
-            return res.status(400).json({ message: "Saldo insuficiente para iniciar carregamento." });
-        }
-
         const response = await client.call('RemoteStartTransaction', {
             connectorId: 1,
             idTag
         });
 
-        if (response.status === 'Accepted') {
-            const userTransaction = new UserTransaction({
-                userId,
-                idTag,
-                targetKwh,
-                status: 'Active'
+        if (response.status !== 'Accepted') {
+            return res.status(400).json({
+                message: "Carregador recusou o comando.",
+                errorCode: 'CHARGER_REJECTED'
             });
-
-            await userTransaction.save();
-
-            res.json({ message: "Carregamento iniciado com sucesso!", idTag });
-        } else {
-            res.status(400).json({ message: "Carregador recusou o comando." });
         }
+
+        // Cria transação no banco
+        const userTransaction = new UserTransaction({
+            userId,
+            idTag,
+            targetKwh,
+            status: 'Active',
+            chargerId,
+            startTime: new Date(),
+            location: {
+                type: 'Point',
+                coordinates: [longitude, latitude]
+            }
+        });
+
+        await userTransaction.save();
+
+        // Atualiza status do carregador
+        await Charger.updateOne(
+            { serialNumber: chargerId },
+            { $set: { status: 'Charging' } }
+        );
+
+        return res.json({
+            message: "Carregamento iniciado com sucesso!",
+            idTag,
+            transactionId: userTransaction._id
+        });
+
     } catch (error) {
-        res.status(500).json({ message: "Erro ao iniciar carregamento", error: error.message });
+        console.error(`Erro ao iniciar carregamento no carregador ${chargerId}:`, error);
+        return res.status(500).json({
+            message: "Erro interno ao iniciar carregamento",
+            errorCode: 'INTERNAL_ERROR'
+        });
     }
 });
 
