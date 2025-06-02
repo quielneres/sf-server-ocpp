@@ -47,16 +47,37 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { userId, cardNumber, holderName, expirationDate, cvv } = req.body;
+        const { userId, cardNumber, holderName, expirationDate, cvv, isPrimary } = req.body;
 
-        // Cria o novo cartão
-        const newCard = new Card({ userId, cardNumber, holderName, expirationDate, cvv });
+        // Verifica se já existe um cartão principal quando isPrimary for true
+        if (isPrimary) {
+            await Card.updateMany(
+                { userId, isPrimary: true },
+                { $set: { isPrimary: false } }
+            );
+        }
+
+        const newCard = new Card({
+            userId,
+            cardNumber,
+            holderName,
+            expirationDate,
+            cvv,
+            isPrimary: isPrimary || false
+        });
+
         await newCard.save();
 
-        res.status(201).json({ message: 'Cartão salvo com sucesso!', card: newCard });
+        res.status(201).json({
+            message: 'Cartão salvo com sucesso!',
+            card: newCard
+        });
     } catch (error) {
         console.error('Erro ao salvar cartão:', error);
-        res.status(500).json({ message: 'Erro ao salvar cartão', error: error.message });
+        res.status(500).json({
+            message: 'Erro ao salvar cartão',
+            error: error.message
+        });
     }
 });
 
@@ -67,6 +88,84 @@ router.get('/:userId', async (req, res) => {
         res.json(cards);
     } catch (error) {
         res.status(500).json({ message: "Erro ao buscar cartões", error });
+    }
+});
+
+// routes/cards.js
+
+// Endpoint para buscar o cartão principal do usuário
+router.get('/:userId/primary', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const primaryCard = await Card.findOne({
+            userId,
+            isPrimary: true
+        });
+
+        if (!primaryCard) {
+            return res.status(404).json({
+                message: 'Nenhum cartão principal encontrado'
+            });
+        }
+
+        res.status(200).json(primaryCard);
+    } catch (error) {
+        console.error('Erro ao buscar cartão principal:', error);
+        res.status(500).json({
+            message: 'Erro ao buscar cartão principal',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint para editar completamente um cartão
+router.put('/:cardId', async (req, res) => {
+    try {
+        const { cardId } = req.params;
+        const {
+            cardNumber,
+            holderName,
+            expirationDate,
+            cvv,
+            isPrimary,
+            userId
+        } = req.body;
+
+        // Se estiver marcando como principal, primeiro remove o status dos outros
+        if (isPrimary) {
+            await Card.updateMany(
+                { userId, _id: { $ne: cardId }, isPrimary: true },
+                { $set: { isPrimary: false } }
+            );
+        }
+
+        const updatedCard = await Card.findByIdAndUpdate(
+            cardId,
+            {
+                cardNumber,
+                holderName,
+                expirationDate,
+                cvv,
+                isPrimary
+            },
+            { new: true }
+        );
+
+        if (!updatedCard) {
+            return res.status(404).json({ message: 'Cartão não encontrado' });
+        }
+
+        res.status(200).json({
+            message: 'Cartão atualizado com sucesso!',
+            card: updatedCard
+        });
+    } catch (error) {
+        console.error('Erro ao atualizar cartão:', error);
+        res.status(500).json({
+            message: 'Erro ao atualizar cartão',
+            error: error.message
+        });
     }
 });
 
