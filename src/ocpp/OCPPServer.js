@@ -281,9 +281,10 @@ class OCPPServer {
                         return {};
                     }
 
-                    // Busca a transação do usuário CORRETAMENTE usando o idTag da transação principal
+                    // Busca a transação do usuário corretamente
                     const userTransaction = await UserTransaction.findOne({
-                        idTag: transaction.idTag  // Corrigido: usa transaction.idTag
+                        idTag: transaction.idTag,
+                        status: 'Active'
                     });
 
                     if (!userTransaction) {
@@ -291,95 +292,62 @@ class OCPPServer {
                         return {};
                     }
 
-                    // ==============================================
-                    // MODO DE TESTE - Incremento artificial
-                    // ==============================================
-                    const TEST_MODE = false;
-                    const TEST_INCREMENT = 5;
-                    let testParams = {...params};
-
-                    if (TEST_MODE && params.meterValue) {
-                        console.log('🔧 MODO DE TESTE ATIVO - Aplicando incremento artificial');
-
-                        // Busca o último valor armazenado ou usa 0 se for a primeira vez
-                        const lastConsumed = transaction.consumedKwh || 0;
-
-                        testParams.meterValue = params.meterValue.map(meter => ({
-                            ...meter,
-                            sampledValue: meter.sampledValue.map(value => {
-                                if (value.measurand === 'Energy.Active.Import.Register') {
-                                    // Incrementa baseado no último valor armazenado
-                                    const newValue = lastConsumed + TEST_INCREMENT;
-
-                                    // Atualiza a transação com o novo valor
-                                    transaction.consumedKwh = newValue;
-
-                                    return {
-                                        ...value,
-                                        value: newValue.toString()
-                                    };
-                                }
-                                return value;
-                            })
-                        }));
-
-                        console.log('🔧 Valores simulados:', testParams.meterValue);
-                    }
-                    // ==============================================
-
-                    // Processa os valores
+                    // Processa os valores recebidos
                     const meterData = {
                         chargerId: client.identity,
-                        timestamp: testParams.meterValue[0]?.timestamp || new Date().toISOString(),
-                        values: testParams.meterValue[0]?.sampledValue || [],
+                        timestamp: params.meterValue?.[0]?.timestamp || new Date().toISOString(),
+                        values: params.meterValue?.[0]?.sampledValue || [],
                     };
-                    addLog(meterData);
+                    addLog(meterData); // (opcional) se tiver função de log
 
-                    // Verificação do targetKwh (agora usando userTransaction corretamente)
-                    if (userTransaction.targetKwh) {
-                        const energyValue = testParams.meterValue[0]?.sampledValue?.find(
-                            v => v.measurand === 'Energy.Active.Import.Register' &&
-                                v.unit === 'kWh'
-                        )?.value;
+                    // Busca o valor de energia atual (kWh)
+                    const energyValue = params.meterValue?.[0]?.sampledValue?.find(
+                        v => v.measurand === 'Energy.Active.Import.Register' && v.unit === 'kWh'
+                    )?.value;
 
-                        if (energyValue) {
-                            const consumedKwh = parseFloat(energyValue);
-                            console.log(`🔋 Consumo atual: ${consumedKwh.toFixed(2)}kWh / Meta: ${userTransaction.targetKwh}kWh`);
+                    if (energyValue) {
+                        const consumedKwh = parseFloat(energyValue);
+                        console.log(`🔋 Consumo atual: ${consumedKwh.toFixed(2)}kWh / Meta: ${userTransaction.targetKwh}kWh`);
 
-                            // Atualiza o consumo na transação do usuário
-                            userTransaction.consumedKwh = consumedKwh;
-                            await userTransaction.save();
+                        // 🔥 Atualiza ambas as transações
+                        userTransaction.consumedKwh = consumedKwh;
+                        await userTransaction.save();
 
-                            // Verifica se atingiu a meta
-                            if (consumedKwh >= userTransaction.targetKwh) {
-                                console.log(`🎯 Meta de ${userTransaction.targetKwh}kWh atingida!`);
+                        transaction.consumedKwh = consumedKwh;
+                        await transaction.save();
 
-                                const stopResponse = await client.call('RemoteStopTransaction', {
-                                    transactionId
-                                });
+                        // Verifica se atingiu a meta
+                        if (userTransaction.targetKwh && consumedKwh >= userTransaction.targetKwh) {
+                            console.log(`🎯 Meta de ${userTransaction.targetKwh}kWh atingida!`);
 
-                                if (stopResponse.status === 'Accepted') {
-                                    // Atualiza ambas as transações
-                                    transaction.status = 'Completed';
-                                    transaction.endTime = new Date();
-                                    transaction.consumedKwh = consumedKwh;
-                                    await transaction.save();
+                            const stopResponse = await client.call('RemoteStopTransaction', {
+                                transactionId
+                            });
 
-                                    userTransaction.status = 'Completed';
-                                    await userTransaction.save();
+                            if (stopResponse.status === 'Accepted') {
+                                // Atualiza os status e horários
+                                const endTime = new Date();
 
-                                    global.activeTransactions.delete(client.identity);
-                                    console.log('✅ Transação encerrada automaticamente');
-                                }
+                                transaction.status = 'Completed';
+                                transaction.endTime = endTime;
+                                await transaction.save();
+
+                                userTransaction.status = 'Completed';
+                                userTransaction.endTime = endTime;
+                                await userTransaction.save();
+
+                                global.activeTransactions.delete(client.identity);
+                                console.log('✅ Transação encerrada automaticamente ao atingir a meta');
                             }
                         }
                     }
                 } catch (error) {
-                    console.error(`❌ Erro no processamento:`, error);
+                    console.error(`❌ Erro no processamento de MeterValues:`, error);
                 }
 
                 return {};
             });
+
 
 
             client.on('close', async () => {
