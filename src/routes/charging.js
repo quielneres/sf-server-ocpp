@@ -114,11 +114,6 @@ router.post('/:id/start', async (req, res) => {
 
         // Correção principal: Mudar para status 400
         if (charger.status !== 'Preparing') {
-            // return res.status(400).json({
-            //     message: `Carregador ${chargerId} não está pronto.`,
-            //     status: charger.status,
-            //     errorCode: 'CHARGER_NOT_READY'
-            // });
 
             return res.status(200).json({
                 message: `Carregador ${chargerId} não está pronto.`,
