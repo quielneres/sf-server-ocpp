@@ -197,22 +197,22 @@ class OCPPServer {
                         userTransaction.endTime = transaction.endTime;
                         await userTransaction.save();
 
-                        // if (consumedKwh > 0) {
-                        //
-                        //     const charger = await Charger.findOne({ serialNumber: client.identity }).lean();
-                        //     const pricePerKwh = charger?.pricePerKw ?? 2; // Valor padrão de R$2 se não definido
-                        //     const amountToDeduct = parseFloat((consumedKwh * pricePerKwh).toFixed(2));
-                        //
-                        //     const wallet = await Wallet.findOne({ userId: userTransaction.userId });
-                        //
-                        //     if (wallet) {
-                        //         wallet.balance -= amountToDeduct;
-                        //         await wallet.save();
-                        //         console.log(`💰 Débito de R$${amountToDeduct} realizado na carteira do usuário ${userTransaction.userId}`);
-                        //     } else {
-                        //         console.warn(`⚠️ Carteira não encontrada para o usuário ${userTransaction.userId}`);
-                        //     }
-                        // }
+                        if (consumedKwh > 0) {
+
+                            const charger = await Charger.findOne({ serialNumber: client.identity }).lean();
+                            const pricePerKwh = charger?.pricePerKw ?? 2; // Valor padrão de R$2 se não definido
+                            const amountToDeduct = parseFloat((consumedKwh * pricePerKwh).toFixed(2));
+
+                            const wallet = await Wallet.findOne({ userId: userTransaction.userId });
+
+                            if (wallet) {
+                                wallet.balance -= amountToDeduct;
+                                await wallet.save();
+                                console.log(`💰 Débito de R$${amountToDeduct} realizado na carteira do usuário ${userTransaction.userId}`);
+                            } else {
+                                console.warn(`⚠️ Carteira não encontrada para o usuário ${userTransaction.userId}`);
+                            }
+                        }
                     }
 
                     global.activeTransactions.delete(client.identity);

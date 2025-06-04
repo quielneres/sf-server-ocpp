@@ -22,5 +22,12 @@
       <jdbc-url>mongodb+srv://solfort.nr2nl.mongodb.net/solfort-db?retryWrites=true&amp;w=majority&amp;appName=solfort</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="sol fort" uuid="ef083df1-ff48-4df2-95b7-37e02b586798">
+      <driver-ref>mongo.4</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.dbschema.MongoJdbcDriver</jdbc-driver>
+      <jdbc-url>mongodb+srv://sol-fort.9r3yn09.mongodb.net/solfort-db?retryWrites=true&amp;w=majority&amp;appName=sol-fort</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

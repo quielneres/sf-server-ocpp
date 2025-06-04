@@ -20,3 +20,7 @@ matar cache
 Testar websocket
 
      wscat -c ws://192.168.0.176:3000/charger-01
+
+References
+    https://www.ampcontrol.io/ocpp-guide/how-to-start-an-ocpp-charging-session-with-starttransaction
+
