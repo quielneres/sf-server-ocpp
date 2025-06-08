@@ -194,7 +194,7 @@ class OCPPServer {
             });
 
             client.handle('MeterValues', async ({ params }) => {
-                console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
+                console.info(`⚡ MeterValues recebido de ${client.identity}:`, params.meterValue?.[0]?.sampledValue);
 
                 const transactionId = global.activeTransactions.get(client.identity);
                 if (!transactionId) {
