@@ -73,13 +73,18 @@ router.get('/history/:userId', async (req, res) => {
  *             properties:
  *               userId:
  *                 type: string
- *                 example: "65bd87a1e7b4e623a4f927e9"
+ *                 example: "683ccdca63404d565d5f7e52"
  *               latitude:
  *                 type: number
  *                 example: -15.8473680
  *               longitude:
  *                 type: number
  *                 example: -47.9782020
+ *               targetKwh:
+ *                 type: number
+ *                 example: 50
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: "Carregamento iniciado com sucesso"
@@ -95,6 +100,7 @@ router.post('/:id/start', async (req, res) => {
         const { userId, latitude, longitude, targetKwh } = req.body;
         const chargerId = req.params.id;
         const client = global.ocppClients?.get(chargerId);
+
 
         // Validações iniciais
         if (!client) {
@@ -122,17 +128,19 @@ router.post('/:id/start', async (req, res) => {
             });
         }
 
-        // Verificação de saldo
-        // const wallet = await Wallet.findOne({ userId });
-        // if (wallet && wallet.balance < MINIMUM_BALANCE) {
-        //     return res.status(402).json({
-        //         message: "Saldo insuficiente para iniciar carregamento.",
-        //         errorCode: 'INSUFFICIENT_BALANCE'
-        //     });
-        // }
-
-        // Inicia transação
         const idTag = generateIdTag();
+        let transactionId = Math.floor(Math.random() * 100000);
+
+        const transaction = new ChargingTransaction({
+            idTag,
+            userId,
+            chargerId,
+            targetKwh,
+            transactionId,
+            status: 'Pending',
+        });
+        await transaction.save();
+
         const response = await client.call('RemoteStartTransaction', {
             connectorId: 1,
             idTag
@@ -145,22 +153,6 @@ router.post('/:id/start', async (req, res) => {
             });
         }
 
-        // Cria transação no banco
-        const userTransaction = new UserTransaction({
-            userId,
-            idTag,
-            targetKwh,
-            status: 'Active',
-            chargerId,
-            startTime: new Date(),
-            location: {
-                type: 'Point',
-                coordinates: [longitude, latitude]
-            }
-        });
-
-        await userTransaction.save();
-
         // Atualiza status do carregador
         await Charger.updateOne(
             { serialNumber: chargerId },
@@ -170,11 +162,11 @@ router.post('/:id/start', async (req, res) => {
         return res.json({
             message: "Carregamento iniciado com sucesso!",
             idTag,
-            transactionId: userTransaction._id
+            transactionId: transaction.transactionId
         });
 
     } catch (error) {
-        console.error(`Erro ao iniciar carregamento no carregador ${chargerId}:`, error);
+        console.error(`Erro ao iniciar carregamento no carregador`, error);
         return res.status(500).json({
             message: "Erro interno ao iniciar carregamento",
             errorCode: 'INTERNAL_ERROR'
