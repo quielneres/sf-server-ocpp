@@ -49,6 +49,7 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/cards', require('./routes/cardRoutes'));
 app.use('/api/cars', require('./routes/cars'));
 app.use('/api/pix', require('./routes/pix'));
+app.use('/api/version', require('./routes/versionRouts'));
 
 const addressRoutes = require('./routes/addressRoutes');
 app.use('/api/addresses', addressRoutes);
