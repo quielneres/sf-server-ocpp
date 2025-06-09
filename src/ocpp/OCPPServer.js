@@ -159,7 +159,7 @@ class OCPPServer {
                         const wallet = await Wallet.findOne({ userId: transaction.userId });
 
                         if (wallet) {
-                            wallet.balance -= amountToDeduct;
+                            wallet.balance = parseFloat((wallet.balance - amountToDeduct).toFixed(2));
                             await wallet.save();
                             console.log(`💰 R$${amountToDeduct} debitado da carteira do ID Tag ${transaction.idTag}`);
                         } else {
