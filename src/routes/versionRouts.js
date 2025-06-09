@@ -21,7 +21,7 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
     try {
-        const version = '1.0.1';
+        const version = '1.1.0';
 
         res.status(200).json({ version });
     } catch (error) {
