@@ -203,44 +203,56 @@ class OCPPServer {
                 }
 
                 try {
-                    // Busca a transação principal
                     const transaction = await ChargingTransaction.findOne({ transactionId });
                     if (!transaction) {
                         console.warn(`⚠️ Transação ${transactionId} não encontrada no banco de dados`);
                         return {};
                     }
 
-                    // Processa os valores recebidos
-                    const meterData = {
-                        chargerId: client.identity,
-                        timestamp: params.meterValue?.[0]?.timestamp || new Date().toISOString(),
-                        values: params.meterValue?.[0]?.sampledValue || [],
-                    };
-                    addLog(meterData); // (opcional) se tiver função de log
-
-                    // Busca o valor de energia atual (kWh)
-                    const energyValue = params.meterValue?.[0]?.sampledValue?.find(
+                    const meterEntry = params.meterValue?.[0];
+                    const energySample = meterEntry?.sampledValue?.find(
                         v => v.measurand === 'Energy.Active.Import.Register' && v.unit === 'kWh'
-                    )?.value;
+                    );
 
-                    if (energyValue) {
-                        const consumedKwh = parseFloat(energyValue);
-                        console.log(`🔋 Consumo atual: ${consumedKwh.toFixed(2)}kWh / Meta: ${transaction.targetKwh}kWh`);
-                        console.log(`🔋 Transação ${transactionId} consumo atual: ${consumedKwh.toFixed(2)}kWh`);
-
-
-                        transaction.consumedKwh = consumedKwh;
-                        await transaction.save();
-
-                        // Verifica se atingiu a meta
-                        if (transaction.targetKwh && consumedKwh >= transaction.targetKwh) {
-                            console.log(`🎯 Meta de ${transaction.targetKwh}kWh atingida!`);
-
-                            await client.call('RemoteStopTransaction', { transactionId  });
-                        }
+                    if (!energySample || isNaN(parseFloat(energySample.value))) {
+                        console.warn(`⚠️ Valor de energia inválido para ${client.identity}`);
+                        return {};
                     }
+
+                    const currentMeterKwh = parseFloat(energySample.value);
+                    console.log(`🔋 Leitura atual: ${currentMeterKwh} kWh`);
+
+                    if (transaction.meterStart == null) {
+                        console.warn(`⚠️ meterStart não definido para transação ${transactionId}.`);
+                        return {};
+                    }
+
+                    transaction.lastMeterValue = currentMeterKwh;
+
+                    // Cálculo do consumo com base no meterStart (em Wh)
+                    const consumedKwh = currentMeterKwh - (transaction.meterStart / 1000);
+                    transaction.consumedKwh = consumedKwh;
+
+                    console.log(`🔋 Transação ${transactionId} consumo atual: ${consumedKwh.toFixed(3)}kWh`);
+
+                    await transaction.save();
+
+                    if (transaction.targetKwh && consumedKwh >= transaction.targetKwh) {
+                        console.log(`🎯 Meta de ${transaction.targetKwh}kWh atingida! Enviando comando de parada.`);
+                        await client.call('RemoteStopTransaction', { transactionId });
+                    }
+
+                    addLog({
+                        chargerId: client.identity,
+                        transactionId,
+                        timestamp: meterEntry?.timestamp || new Date().toISOString(),
+                        energyKwh: currentMeterKwh,
+                        consumedKwh,
+                        sampledValues: meterEntry?.sampledValue || []
+                    });
+
                 } catch (error) {
-                    console.error(`❌ Erro no processamento de MeterValues:`, error);
+                    console.error(`❌ Erro no processamento de MeterValues para ${client.identity}:`, error);
                 }
 
                 return {};
