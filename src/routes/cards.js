@@ -6,6 +6,11 @@ const router = express.Router();
 router.get('/:userId', async (req, res) => {
     try {
         const cards = await Card.find({ user: req.params.userId });
+
+        if (cards.length === 0) {
+            return res.status(404).json({ message: "Nenhum cartão encontrado" });
+        }
+
         res.json(cards);
     } catch (error) {
         res.status(500).json({ message: "Erro ao buscar cartões", error });
