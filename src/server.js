@@ -14,7 +14,7 @@ const cors = require('cors');
 const app = express();
 // const PORT = process.env.PORT || 80;
 const PORT = 4000;
-app.use(express.json());
+app.use(express.json({ type: '*/*' }));
 app.use(cors({
     origin: '*', // ou: ['http://localhost:19006'] para restringir
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -49,14 +49,22 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/cards', require('./routes/cardRoutes'));
 app.use('/api/cars', require('./routes/cars'));
 app.use('/api/pix', require('./routes/pix'));
+app.use('/api/version', require('./routes/versionRouts'));
 
 const addressRoutes = require('./routes/addressRoutes');
 app.use('/api/addresses', addressRoutes);
 
 
+// Rota do Webhook da Pagar.me
+app.use('/webhooks', require('./routes/webhookRoutes'));
+
+
 
 const logsRouter = require("./routes/logs"); // 🔹 Agora importa corretamente
 app.use("/api/logs", logsRouter); // 🔹 Agora funciona sem erro
+
+
+//======================================FRONTEND============================================================
 
 app.use(express.static(path.join(__dirname, '../public')));
 

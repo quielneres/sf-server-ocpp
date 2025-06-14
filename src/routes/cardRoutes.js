@@ -170,6 +170,30 @@ router.put('/:cardId', async (req, res) => {
 });
 
 
+// Endpoint para deletar um cartão
+router.delete('/:cardId', async (req, res) => {
+    try {
+        const { cardId } = req.params;
+        const deletedCard = await Card.findByIdAndDelete(cardId);
+
+        if (!deletedCard) {
+            return res.status(404).json({ message: 'Cartão nao encontrado' });
+        }
+
+        res.status(200).json({
+            message: 'Cartão deletado com sucesso!',
+            card: deletedCard
+        });
+    } catch (error) {
+        console.error('Erro ao deletar cartão:', error);
+        res.status(500).json({
+            message: 'Erro ao deletar cartão',
+            error: error.message
+        });
+    }
+});
+
+
 /**
  * @swagger
  * /api/cards/deposit-with-credit-card:

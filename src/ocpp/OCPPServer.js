@@ -3,7 +3,6 @@ const Charger = require('../models/Charger');
 const { handleMeterValues } = require("./handlers");
 const amqp = require('amqplib');
 const ChargingTransaction = require('../models/ChargingTransaction');
-const UserTransaction = require('../models/UserTransaction');
 const Wallet = require('../models/Wallet');
 const { addLog } = require("../routes/logs");
 
@@ -89,50 +88,28 @@ class OCPPServer {
                 return {};
             });
 
-            // client.handle('StartTransaction', async ({ params }) => {
-            //     console.info(`🚀 StartTransaction de ${client.identity}:`, params);
-            //
-            //     let transactionId = params.transactionId || Math.floor(Math.random() * 100000);
-            //     if (!params.transactionId) {
-            //         console.warn(`⚠️ StartTransaction sem transactionId recebido, gerando um: ${transactionId}`);
-            //     }
-            //
-            //     global.activeTransactions.set(client.identity, transactionId);
-            //     console.info(`📌 Transaction armazenada: ${client.identity} -> ${transactionId}`);
-            //
-            //     return { transactionId, idTagInfo: { status: "Accepted" } };
-            // });
-            //
-            // client.handle('StopTransaction', async ({ params }) => {
-            //     console.info(`🛑 StopTransaction de ${client.identity}:`, params);
-            //
-            //     global.activeTransactions.delete(client.identity);
-            //     console.info(`🗑 Transaction removida: ${client.identity}`);
-            //
-            //     return { idTagInfo: { status: "Accepted" } };
-            // });
-
-
             client.handle('StartTransaction', async ({ params }) => {
                 console.info(`🚀 StartTransaction de ${client.identity}:`, params);
-
-                let transactionId = params.transactionId || Math.floor(Math.random() * 100000);
-
                 try {
-                    const newTransaction = new ChargingTransaction({
-                        chargerId: client.identity,
-                        idTag: params.idTag,
-                        transactionId,
-                        startTime: new Date(),
-                        status: 'Active'
-                    });
 
-                    await newTransaction.save();
+                    const transaction = await ChargingTransaction.findOne({ idTag: params.idTag });
+                    if (!transaction) {
+                        console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando StartTransaction.`);
+                        return { idTagInfo: { status: "Rejected" } };
+                    }
+
+                    transaction.meterStart = typeof params.meterStart === 'number' ? params.meterStart : 0;
+                    transaction.startTime = new Date();
+                    transaction.status = 'Active';
+
+                    await transaction.save();
+
+                    let transactionId = transaction.transactionId;
 
                     global.activeTransactions.set(client.identity, transactionId);
                     console.info(`✅ Transação iniciada e salva no banco: ${transactionId}`);
 
-                    return { transactionId, idTagInfo: { status: "Accepted" } };
+                    return {transactionId, idTagInfo: { status: "Accepted" } };
                 } catch (error) {
                     console.error(`❌ Erro ao iniciar transação:`, error);
                     return { idTagInfo: { status: "Rejected" } };
@@ -142,7 +119,8 @@ class OCPPServer {
             client.handle('StopTransaction', async ({ params }) => {
                 console.info(`🛑 StopTransaction de ${client.identity}:`, params);
 
-                const transactionId = global.activeTransactions.get(client.identity);
+                // const transactionId = global.activeTransactions.get(client.identity);
+                const transactionId = params.transactionId;
                 if (!transactionId) {
                     console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando StopTransaction.`);
                     return { idTagInfo: { status: "Rejected" } };
@@ -155,66 +133,42 @@ class OCPPServer {
                         return { idTagInfo: { status: "Rejected" } };
                     }
 
-                    // Atualiza dados da transação
+                    // Atualiza status e horário de término
                     transaction.endTime = new Date();
                     transaction.status = 'Completed';
 
-                    // Captura consumo final (do meterStop ou do último registro)
-                    let consumedKwh = 0;
-                    if (params.meterStop) {
-                        // Verifica se é array (OCPP 1.6) ou objeto (algumas implementações)
-                        const meterValues = Array.isArray(params.meterStop) ? params.meterStop : [params.meterStop];
+                    // Registra o meterStop diretamente da requisição
+                    if (typeof params.meterStop === 'number') {
+                        transaction.meterStop = params.meterStop || 0;
+                    }
 
-                        // Encontra o valor de energia (protegido contra undefined)
-                        const energyEntry = meterValues
-                            .flatMap(mv => mv.sampledValue || [])
-                            .find(sv => sv.measurand === 'Energy.Active.Import.Register' && sv.unit === 'kWh');
-
-                        if (energyEntry?.value) {
-                            consumedKwh = parseFloat(energyEntry.value);
-                            transaction.consumedKwh = consumedKwh;
-                            console.log(`🔋 Consumo final registrado: ${consumedKwh}kWh`);
-                        }
+                    // Calcula consumo
+                    if (transaction.meterStart != null && transaction.meterStop != null) {
+                        transaction.consumedKwh = (transaction.meterStop - transaction.meterStart) / 1000;
+                        console.log(`🔋 Consumo total: ${transaction.consumedKwh.toFixed(3)} kWh`);
+                    } else {
+                        console.warn(`⚠️ Não foi possível calcular consumo — meterStart ou meterStop ausente.`);
                     }
 
                     await transaction.save();
 
-                    // Busca a transação do usuário e atualiza
-                    const userTransaction = await UserTransaction.findOne({
-                        idTag: transaction.idTag,
-                        status: 'Active'
-                    });
+                    if (transaction.consumedKwh > 0) {
+                        const charger = await Charger.findOne({ serialNumber: client.identity }).lean();
+                        const pricePerKwh = charger?.pricePerKw ?? 2;
+                        const amountToDeduct = parseFloat((transaction.consumedKwh * pricePerKwh).toFixed(2));
 
-                    if (userTransaction) {
-                        // Se não encontrou consumo no meterStop, usa o que já estava na transação
-                        if (consumedKwh === 0 && transaction.consumedKwh) {
-                            consumedKwh = transaction.consumedKwh;
-                        }
+                        const wallet = await Wallet.findOne({ userId: transaction.userId });
 
-                        // Atualiza a transação do usuário
-                        userTransaction.consumedKwh = consumedKwh;
-                        userTransaction.status = 'Completed';
-                        userTransaction.endTime = transaction.endTime;
-                        await userTransaction.save();
-
-                        if (consumedKwh > 0) {
-
-                            const charger = await Charger.findOne({ serialNumber: client.identity }).lean();
-                            const pricePerKwh = charger?.pricePerKw ?? 2; // Valor padrão de R$2 se não definido
-                            const amountToDeduct = parseFloat((consumedKwh * pricePerKwh).toFixed(2));
-
-                            const wallet = await Wallet.findOne({ userId: userTransaction.userId });
-
-                            if (wallet) {
-                                wallet.balance -= amountToDeduct;
-                                await wallet.save();
-                                console.log(`💰 Débito de R$${amountToDeduct} realizado na carteira do usuário ${userTransaction.userId}`);
-                            } else {
-                                console.warn(`⚠️ Carteira não encontrada para o usuário ${userTransaction.userId}`);
-                            }
+                        if (wallet) {
+                            wallet.balance = parseFloat((wallet.balance - amountToDeduct).toFixed(2));
+                            await wallet.save();
+                            console.log(`💰 R$${amountToDeduct} debitado da carteira do ID Tag ${transaction.idTag}`);
+                        } else {
+                            console.warn(`⚠️ Carteira não encontrada para ID Tag ${transaction.idTag}`);
                         }
                     }
 
+                    // Remove transação ativa da memória
                     global.activeTransactions.delete(client.identity);
                 } catch (error) {
                     console.error(`❌ Erro ao finalizar transação:`, error);
@@ -222,8 +176,6 @@ class OCPPServer {
 
                 return { idTagInfo: { status: "Accepted" } };
             });
-
-
 
             client.handle('Heartbeat', async () => {
                 console.info(`💓 Heartbeat recebido de ${client.identity}`);
@@ -242,30 +194,8 @@ class OCPPServer {
                 return { currentTime: new Date().toISOString() };
             });
 
-            // client.handle('MeterValues', async (params) => await handleMeterValues(client, params));
-
-
-            // client.handle('MeterValues', async ({ params }) => {
-            //     console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
-            //
-            //     const meterData = {
-            //         chargerId: client.identity,
-            //         timestamp: params.meterValue[0]?.timestamp || new Date().toISOString(),
-            //         values: params.meterValue[0]?.sampledValue || [],
-            //     };
-            //
-            //     this.sendToRabbitMQ(meterData); // 🔹 Envia para RabbitMQ
-            //     return {};
-            // });
-
-            // client.handle('MeterValues', async ({ params }) => {
-            //     console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
-            //     // this.publishToRabbitMQ(client.identity, params); // Envia os dados para RabbitMQ
-            //     return {};
-            // });
-
             client.handle('MeterValues', async ({ params }) => {
-                console.info(`⚡ MeterValues recebido de ${client.identity}:`, params);
+                console.info(`⚡ MeterValues recebido de ${client.identity}:`, params.meterValue?.[0]?.sampledValue);
 
                 const transactionId = global.activeTransactions.get(client.identity);
                 if (!transactionId) {
@@ -274,75 +204,56 @@ class OCPPServer {
                 }
 
                 try {
-                    // Busca a transação principal
                     const transaction = await ChargingTransaction.findOne({ transactionId });
                     if (!transaction) {
                         console.warn(`⚠️ Transação ${transactionId} não encontrada no banco de dados`);
                         return {};
                     }
 
-                    // Busca a transação do usuário corretamente
-                    const userTransaction = await UserTransaction.findOne({
-                        idTag: transaction.idTag,
-                        status: 'Active'
-                    });
+                    const meterEntry = params.meterValue?.[0];
+                    const energySample = meterEntry?.sampledValue?.find(
+                        v => v.measurand === 'Energy.Active.Import.Register' && v.unit === 'kWh'
+                    );
 
-                    if (!userTransaction) {
-                        console.warn(`⚠️ Transação do usuário com idTag ${transaction.idTag} não encontrada`);
+                    if (!energySample || isNaN(parseFloat(energySample.value))) {
+                        console.warn(`⚠️ Valor de energia inválido para ${client.identity}`);
                         return {};
                     }
 
-                    // Processa os valores recebidos
-                    const meterData = {
-                        chargerId: client.identity,
-                        timestamp: params.meterValue?.[0]?.timestamp || new Date().toISOString(),
-                        values: params.meterValue?.[0]?.sampledValue || [],
-                    };
-                    addLog(meterData); // (opcional) se tiver função de log
+                    const currentMeterKwh = parseFloat(energySample.value);
+                    console.log(`🔋 Leitura atual: ${currentMeterKwh} kWh`);
 
-                    // Busca o valor de energia atual (kWh)
-                    const energyValue = params.meterValue?.[0]?.sampledValue?.find(
-                        v => v.measurand === 'Energy.Active.Import.Register' && v.unit === 'kWh'
-                    )?.value;
-
-                    if (energyValue) {
-                        const consumedKwh = parseFloat(energyValue);
-                        console.log(`🔋 Consumo atual: ${consumedKwh.toFixed(2)}kWh / Meta: ${userTransaction.targetKwh}kWh`);
-
-                        // 🔥 Atualiza ambas as transações
-                        userTransaction.consumedKwh = consumedKwh;
-                        await userTransaction.save();
-
-                        transaction.consumedKwh = consumedKwh;
-                        await transaction.save();
-
-                        // Verifica se atingiu a meta
-                        if (userTransaction.targetKwh && consumedKwh >= userTransaction.targetKwh) {
-                            console.log(`🎯 Meta de ${userTransaction.targetKwh}kWh atingida!`);
-
-                            const stopResponse = await client.call('RemoteStopTransaction', {
-                                transactionId
-                            });
-
-                            if (stopResponse.status === 'Accepted') {
-                                // Atualiza os status e horários
-                                const endTime = new Date();
-
-                                transaction.status = 'Completed';
-                                transaction.endTime = endTime;
-                                await transaction.save();
-
-                                userTransaction.status = 'Completed';
-                                userTransaction.endTime = endTime;
-                                await userTransaction.save();
-
-                                global.activeTransactions.delete(client.identity);
-                                console.log('✅ Transação encerrada automaticamente ao atingir a meta');
-                            }
-                        }
+                    if (transaction.meterStart == null) {
+                        console.warn(`⚠️ meterStart não definido para transação ${transactionId}.`);
+                        return {};
                     }
+
+                    transaction.lastMeterValue = currentMeterKwh;
+
+                    // Cálculo do consumo com base no meterStart (em Wh)
+                    const consumedKwh = currentMeterKwh - (transaction.meterStart / 1000);
+                    transaction.consumedKwh = consumedKwh;
+
+                    console.log(`🔋 Transação ${transactionId} consumo atual: ${consumedKwh.toFixed(3)}kWh`);
+
+                    await transaction.save();
+
+                    if (transaction.targetKwh && consumedKwh >= transaction.targetKwh) {
+                        console.log(`🎯 Meta de ${transaction.targetKwh}kWh atingida! Enviando comando de parada.`);
+                        await client.call('RemoteStopTransaction', { transactionId });
+                    }
+
+                    addLog({
+                        chargerId: client.identity,
+                        transactionId,
+                        timestamp: meterEntry?.timestamp || new Date().toISOString(),
+                        energyKwh: currentMeterKwh,
+                        consumedKwh,
+                        sampledValues: meterEntry?.sampledValue || []
+                    });
+
                 } catch (error) {
-                    console.error(`❌ Erro no processamento de MeterValues:`, error);
+                    console.error(`❌ Erro no processamento de MeterValues para ${client.identity}:`, error);
                 }
 
                 return {};
@@ -373,25 +284,6 @@ class OCPPServer {
 
     }
 
-    // async initRabbitMQ() {
-    //     try {
-    //         this.rabbitConn = await amqp.connect(process.env.RABBITMQ_URL);
-    //         this.rabbitChannel = await this.rabbitConn.createChannel();
-    //         await this.rabbitChannel.assertExchange("meter_values_exchange", "direct", { durable: false });
-    //         console.log("✅ Conectado ao RabbitMQ");
-    //     } catch (error) {
-    //         console.error("❌ Erro ao conectar ao RabbitMQ:", error);
-    //     }
-    // }
-    //
-    // publishToRabbitMQ(data) {
-    //     if (this.rabbitChannel) {
-    //         this.rabbitChannel.publish("meter_values_exchange", "meter.values", Buffer.from(JSON.stringify(data)));
-    //         console.info("📤 Enviado para RabbitMQ:", data);
-    //     } else {
-    //         console.error("❌ Canal RabbitMQ não inicializado.");
-    //     }
-    // }
 }
 
 module.exports = OCPPServer;

@@ -2,6 +2,7 @@ const User = require('../models/User');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { hashPassword, comparePassword } = require('../utils/passwordUtils');
+const AddressService = require("./AddressService");
 
 class UserService {
     static async registerUser(userData) {
@@ -38,6 +39,8 @@ class UserService {
             });
 
             await newUser.save();
+
+            await AddressService.createAddress(newUser._id, userData);
 
             const userToReturn = newUser.toObject();
             delete userToReturn.password;
