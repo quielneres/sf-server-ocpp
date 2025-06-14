@@ -17,7 +17,14 @@ class UserController {
                 password,
                 phone_ddd,
                 phone_number,
-                termsAccepted
+                termsAccepted,
+                cep,
+                city,
+                complement,
+                neighborhood,
+                number,
+                state,
+                street
             } = req.body;
 
             // Validação básica dos campos obrigatórios
@@ -48,7 +55,14 @@ class UserController {
                 password,
                 phone_ddd,
                 phone_number,
-                termsAccepted
+                termsAccepted,
+                cep,
+                city,
+                complement,
+                neighborhood,
+                number,
+                state,
+                street
             });
 
             return res.status(201).json(result);

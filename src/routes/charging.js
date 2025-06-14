@@ -336,4 +336,33 @@ function generateIdTag(length = 20) {
     return idTag;
 }
 
+router.get('/user-charging-transactions/:userId', async (req, res) => {
+    try {
+        // Usar findOne para pegar apenas a transação mais recente
+        const transaction = await ChargingTransaction.findOne({
+            userId: req.params.userId,
+            status: 'Active'
+        }).sort({ startTime: -1 });
+
+        if (!transaction) {
+            return res.status(404).json({ error: "Nenhuma transação ativa encontrada" });
+        }
+
+        // Agora transaction é um objeto único, podemos acessar chargerId diretamente
+        const charger = await Charger.findOne({ serialNumber: transaction.chargerId });
+
+        if (!charger) {
+            return res.status(404).json({
+                error: "Transação encontrada mas carregador não localizado",
+                transaction // Retorna a transação mesmo sem o carregador
+            });
+        }
+
+        res.json({ transaction, charger });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 module.exports = router;
