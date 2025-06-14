@@ -119,7 +119,8 @@ class OCPPServer {
             client.handle('StopTransaction', async ({ params }) => {
                 console.info(`🛑 StopTransaction de ${client.identity}:`, params);
 
-                const transactionId = global.activeTransactions.get(client.identity);
+                // const transactionId = global.activeTransactions.get(client.identity);
+                const transactionId = params.transactionId;
                 if (!transactionId) {
                     console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando StopTransaction.`);
                     return { idTagInfo: { status: "Rejected" } };
