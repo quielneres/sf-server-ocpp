@@ -101,6 +101,13 @@ router.post('/:id/start', async (req, res) => {
         const chargerId = req.params.id;
         const client = global.ocppClients?.get(chargerId);
 
+        if(!targetKwh || !targetKwh === 0) {
+            return res.status(404).json({
+                message: 'Problema ao iniciar carregamento. Considere atualizar o app para a versão mais recente.',
+                errorCode: 'CHARGER_OFFLINE'
+            });
+        }
+
 
         // Validações iniciais
         if (!client) {
