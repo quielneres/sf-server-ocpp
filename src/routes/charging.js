@@ -108,6 +108,21 @@ router.post('/:id/start', async (req, res) => {
             });
         }
 
+        const wallet = await Wallet.findOne({ userId });
+        if (!wallet) {
+            return res.status(404).json({
+                message: `Saldo não encontrado.`,
+                errorCode: 'CHARGER_OFFLINE'
+            });
+        }
+
+        if (wallet.balance < MINIMUM_BALANCE) {
+            return res.status(400).json({
+                message: `Saldo insuficiente. O saldo atual é ${wallet.balance}.`,
+                errorCode: 'INSUFFICIENT_BALANCE'
+            });
+        }
+
 
         // Validações iniciais
         if (!client) {
@@ -117,13 +132,50 @@ router.post('/:id/start', async (req, res) => {
             });
         }
 
+
+
         const charger = await Charger.findOne({ serialNumber: chargerId });
         if (!charger) {
             return res.status(404).json({
-                message: `Carregador ${chargerId} não encontrado.`,
+                message: `Carregador Indisponível.`,
                 errorCode: 'CHARGER_NOT_FOUND'
             });
         }
+
+
+        const userBalance = Number(wallet.balance);
+        const kwhRequested = Number(targetKwh);
+        const pricePerKwh = Number(charger.pricePerKwh);
+        const transactionValue = kwhRequested * pricePerKwh;
+
+        if (!kwhRequested || isNaN(kwhRequested) || kwhRequested <= 0) {
+            return res.status(400).json({
+                message: 'Valor de kWh solicitado inválido.',
+                errorCode: 'INVALID_TARGET_KWH'
+            });
+        }
+
+        if (isNaN(userBalance) || userBalance < MINIMUM_BALANCE) {
+            return res.status(400).json({
+                message: `Saldo insuficiente ou inválido. O saldo atual é R$ ${userBalance.toFixed(2)}.`,
+                errorCode: 'INSUFFICIENT_BALANCE'
+            });
+        }
+
+        if (isNaN(transactionValue) || transactionValue <= 0) {
+            return res.status(400).json({
+                message: `Valor calculado da transação é inválido.`,
+                errorCode: 'INVALID_TRANSACTION_VALUE'
+            });
+        }
+
+        if (userBalance < transactionValue) {
+            return res.status(400).json({
+                message: `Saldo insuficiente. O saldo atual é R$ ${userBalance.toFixed(2)} e o valor necessário é R$ ${transactionValue.toFixed(2)}.`,
+                errorCode: 'INSUFFICIENT_BALANCE'
+            });
+        }
+
 
         // Correção principal: Mudar para status 400
         if (charger.status !== 'Preparing') {
