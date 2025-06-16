@@ -148,12 +148,12 @@ router.post('/:id/start', async (req, res) => {
         const pricePerKwh = Number(charger.pricePerKwh);
         const transactionValue = kwhRequested * pricePerKwh;
 
-        if (!kwhRequested || isNaN(kwhRequested) || kwhRequested <= 0) {
-            return res.status(400).json({
-                message: 'Valor de kWh solicitado inválido.',
-                errorCode: 'INVALID_TARGET_KWH'
-            });
-        }
+        // if (!kwhRequested || isNaN(kwhRequested) || kwhRequested <= 0) {
+        //     return res.status(400).json({
+        //         message: 'Valor de kWh solicitado inválido.',
+        //         errorCode: 'INVALID_TARGET_KWH'
+        //     });
+        // }
 
         if (isNaN(userBalance) || userBalance < MINIMUM_BALANCE) {
             return res.status(400).json({
