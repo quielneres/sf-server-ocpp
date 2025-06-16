@@ -141,6 +141,51 @@ router.post('/change-password', UserController.changePassword);
 router.post('/request-password-reset', UserController.requestPasswordReset);
 router.post('/reset-password', UserController.resetPassword);
 
+/**
+ * @swagger
+ *
+ * /api/user/validator-email:
+ *   post:
+ *     summary: Valida o e-mail do usuário
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "joao@email.com"
+ *     responses:
+ *       200:
+ *         description: E-mail válido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "E-mail válido"
+ *       400:
+ *         description: E-mail inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ */
+router.post('/validator-email', UserController.validatorEmail);
 
 router.get('/:userId/favorites', UserController.favorites);
 
