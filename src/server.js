@@ -51,6 +51,8 @@ app.use('/api/cars', require('./routes/cars'));
 app.use('/api/pix', require('./routes/pix'));
 app.use('/api/version', require('./routes/versionRouts'));
 
+app.use('/api/config', require('./routes/ocpp'));
+
 const addressRoutes = require('./routes/addressRoutes');
 app.use('/api/addresses', addressRoutes);
 

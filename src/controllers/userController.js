@@ -3,6 +3,23 @@ const User = require('../models/User');
 const UserFavoriteService = require("../services/userFavoriteService");
 
 class UserController {
+
+
+    static async validatorEmail(req, res) {
+        try {
+            const user = await User.findOne({email: req.body.email});
+
+            if (!user) {
+                return res.status(400).json({ error: 'EMAIL_NOT_FOUND' });
+            }
+
+            return res.status(200).json(user);
+        } catch (error) {
+            console.error('Erro ao buscar usuário por e-mail:', error);
+            throw error;
+        }
+    }
+
     /**
      * Cadastra um novo usuário.
      * @param {Object} req - Objeto de requisição do Express.
