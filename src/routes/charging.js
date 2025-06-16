@@ -162,12 +162,12 @@ router.post('/:id/start', async (req, res) => {
             });
         }
 
-        if (isNaN(transactionValue) || transactionValue <= 0) {
-            return res.status(400).json({
-                message: `Valor calculado da transação é inválido.`,
-                errorCode: 'INVALID_TRANSACTION_VALUE'
-            });
-        }
+        // if (isNaN(transactionValue) || transactionValue <= 0) {
+        //     return res.status(400).json({
+        //         message: `Valor calculado da transação é inválido.`,
+        //         errorCode: 'INVALID_TRANSACTION_VALUE'
+        //     });
+        // }
 
         if (userBalance < transactionValue) {
             return res.status(400).json({
