@@ -91,8 +91,8 @@ class OCPPServer {
             client.handle('StartTransaction', async ({ params }) => {
                 console.info(`🚀 StartTransaction de ${client.identity}:`, params);
                 try {
+                    const transaction = await findTransactionWithRetry(params.idTag);
 
-                    const transaction = await ChargingTransaction.findOne({ idTag: params.idTag });
                     if (!transaction) {
                         console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando StartTransaction.`);
                         return { idTagInfo: { status: "Rejected" } };
@@ -101,20 +101,39 @@ class OCPPServer {
                     transaction.meterStart = typeof params.meterStart === 'number' ? params.meterStart : 0;
                     transaction.startTime = new Date();
                     transaction.status = 'Active';
-
                     await transaction.save();
 
-                    let transactionId = transaction.transactionId;
+                    // Remove do cache após o início bem-sucedido
+                    global.pendingTransactions?.delete(params.idTag);
+
+                    const transactionId = transaction.transactionId;
 
                     global.activeTransactions.set(client.identity, transactionId);
                     console.info(`✅ Transação iniciada e salva no banco: ${transactionId}`);
 
-                    return {transactionId, idTagInfo: { status: "Accepted" } };
+                    return {
+                        transactionId,
+                        idTagInfo: { status: "Accepted" }
+                    };
                 } catch (error) {
                     console.error(`❌ Erro ao iniciar transação:`, error);
                     return { idTagInfo: { status: "Rejected" } };
                 }
             });
+
+            async function findTransactionWithRetry(idTag, maxAttempts = 5, delay = 100) {
+                for (let i = 0; i < maxAttempts; i++) {
+                    const cached = global.pendingTransactions?.get(idTag);
+                    if (cached) return cached;
+
+                    const fromDb = await ChargingTransaction.findOne({ idTag });
+                    if (fromDb) return fromDb;
+
+                    await new Promise(res => setTimeout(res, delay));
+                }
+                return null;
+            }
+
 
             client.handle('StopTransaction', async ({ params }) => {
                 console.info(`🛑 StopTransaction de ${client.identity}:`, params);
