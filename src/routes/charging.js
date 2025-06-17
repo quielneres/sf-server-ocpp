@@ -105,7 +105,7 @@ router.post('/:id/start', async (req, res) => {
         // Validações iniciais
         if (!client) {
             return res.status(404).json({
-                message: `Carregador ${chargerId} não conectado.`,
+                message: `Estação indisponível.`,
                 errorCode: 'CHARGER_OFFLINE'
             });
         }
@@ -113,7 +113,7 @@ router.post('/:id/start', async (req, res) => {
         const charger = await Charger.findOne({ serialNumber: chargerId });
         if (!charger) {
             return res.status(404).json({
-                message: `Carregador ${chargerId} não encontrado.`,
+                message: `Estação não encontrada.`,
                 errorCode: 'CHARGER_NOT_FOUND'
             });
         }
@@ -122,7 +122,7 @@ router.post('/:id/start', async (req, res) => {
         if (charger.status !== 'Preparing') {
 
             return res.status(200).json({
-                message: `Carregador ${chargerId} não está pronto.`,
+                message: `Carregador não está pronto.`,
                 status: charger.status,
                 errorCode: 'CHARGER_NOT_READY'
             });

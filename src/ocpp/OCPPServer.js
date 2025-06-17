@@ -210,17 +210,31 @@ class OCPPServer {
                         return {};
                     }
 
-                    const meterEntry = params.meterValue?.[0];
-                    const energySample = meterEntry?.sampledValue?.find(
-                        v => v.measurand === 'Energy.Active.Import.Register' && v.unit === 'kWh'
-                    );
+                    const meterEntries = params.meterValue || params.meterValues || [];
+                    let lastValidEntry = null;
+                    let energySample = null;
 
-                    if (!energySample || isNaN(parseFloat(energySample.value))) {
-                        console.warn(`⚠️ Valor de energia inválido para ${client.identity}`);
+                    for (const entry of meterEntries) {
+                        const samples = entry.sampledValue || entry.values || [];
+                        const candidate = samples.find(
+                            v => v.measurand === 'Energy.Active.Import.Register' && ['Wh', 'kWh'].includes(v.unit)
+                        );
+                        if (candidate && !isNaN(parseFloat(candidate.value))) {
+                            energySample = candidate;
+                            lastValidEntry = entry;
+                        }
+                    }
+
+                    if (!energySample || !lastValidEntry) {
+                        console.warn(`⚠️ Nenhuma leitura válida de energia encontrada para ${client.identity}`);
                         return {};
                     }
 
-                    const currentMeterKwh = parseFloat(energySample.value);
+                    let currentMeterKwh = parseFloat(energySample.value);
+                    if (energySample.unit === 'Wh') {
+                        currentMeterKwh = currentMeterKwh / 1000;
+                    }
+
                     console.log(`🔋 Leitura atual: ${currentMeterKwh} kWh`);
 
                     if (transaction.meterStart == null) {
@@ -230,7 +244,6 @@ class OCPPServer {
 
                     transaction.lastMeterValue = currentMeterKwh;
 
-                    // Cálculo do consumo com base no meterStart (em Wh)
                     const consumedKwh = currentMeterKwh - (transaction.meterStart / 1000);
                     transaction.consumedKwh = consumedKwh;
 
@@ -246,15 +259,16 @@ class OCPPServer {
                     addLog({
                         chargerId: client.identity,
                         transactionId,
-                        timestamp: meterEntry?.timestamp || new Date().toISOString(),
+                        timestamp: lastValidEntry.timestamp || new Date().toISOString(),
                         energyKwh: currentMeterKwh,
                         consumedKwh,
-                        sampledValues: meterEntry?.sampledValue || []
+                        sampledValues: lastValidEntry.sampledValue || lastValidEntry.values || []
                     });
 
                 } catch (error) {
                     console.error(`❌ Erro no processamento de MeterValues para ${client.identity}:`, error);
                 }
+
 
                 return {};
             });
