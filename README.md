@@ -2,6 +2,8 @@ Pegar IP local
 
 ifconfig | grep "inet " | grep -v 127.0.0.1
 
+ws://192.168.0.176:3000
+
 subir com o Docker
 
     docker-compose build ou docker-compose build --no-cache

@@ -141,10 +141,14 @@ router.post('/:id/start', async (req, res) => {
         });
         await transaction.save();
 
+        global.pendingTransactions = global.pendingTransactions || new Map();
+        global.pendingTransactions.set(idTag, transaction);
+
         const response = await client.call('RemoteStartTransaction', {
             connectorId: 1,
             idTag
         });
+
 
         if (response.status !== 'Accepted') {
             return res.status(400).json({
@@ -335,6 +339,38 @@ function generateIdTag(length = 20) {
     }
     return idTag;
 }
+
+// async function generateIdTag(userId = '') {
+//     const createId = () => {
+//         const timestamp = Date.now().toString(36); // exemplo: 'lna1kz'
+//         const userHash = userId
+//             ? Buffer.from(userId).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 4)
+//             : '';
+//         const randomLength = 20 - timestamp.length - userHash.length;
+//         const randomPart = [...Array(randomLength)].map(() =>
+//             Math.random().toString(36)[2]
+//         ).join('');
+//
+//         return `${timestamp}${userHash}${randomPart}`.slice(0, 20); // garante 20 caracteres
+//     };
+//
+//     let idTag;
+//     let exists = true;
+//     let attempts = 0;
+//
+//     while (exists && attempts < 5) {
+//         idTag = createId();
+//         exists = await ChargingTransaction.findOne({ idTag });
+//         attempts++;
+//     }
+//
+//     if (exists) {
+//         throw new Error("Falha ao gerar idTag única após várias tentativas.");
+//     }
+//
+//     return idTag;
+// }
+
 
 router.get('/user-charging-transactions/:userId', async (req, res) => {
     try {
