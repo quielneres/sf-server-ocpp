@@ -2,7 +2,11 @@ Pegar IP local
 
 ifconfig | grep "inet " | grep -v 127.0.0.1
 
+
+Testar websocket local
 ws://192.168.0.176:3000
+idUser = 684b9f61d6219815a0f08b65
+idCharger = NBK0000324020039
 
 subir com o Docker
 
