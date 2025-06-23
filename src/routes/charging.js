@@ -101,6 +101,10 @@ router.post('/:id/start', async (req, res) => {
         const chargerId = req.params.id;
         const client = global.ocppClients?.get(chargerId);
 
+        console.log('Charger ID:', chargerId);
+        console.log('User ID:', userId);
+        console.log('Target KWh:', targetKwh);
+
 
         // Validações iniciais
         if (!client) {
@@ -149,6 +153,7 @@ router.post('/:id/start', async (req, res) => {
             idTag
         });
 
+        console.log(`✅ Comando enviado para ${chargerId}:`, response);
 
         if (response.status !== 'Accepted') {
             return res.status(400).json({
