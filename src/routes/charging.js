@@ -158,7 +158,7 @@ router.post('/:id/start', async (req, res) => {
         if (response.status !== 'Accepted') {
             return res.status(400).json({
                 message: "Carregador recusou o comando.",
-                errorCode: 'CHARGER_REJECTED'
+                errorCode: 'CHARGER_NOT_READY'
             });
         }
 
