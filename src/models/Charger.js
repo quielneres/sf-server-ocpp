@@ -1,43 +1,55 @@
 const mongoose = require('mongoose');
 
+const ConnectorSchema = new mongoose.Schema({
+    connectorId: { type: Number, required: true }, // ex: 1, 2, 3...
+    status: { type: String, default: 'Available' }, // Available, Charging, SuspendedEV, etc.
+    currentTransactionId: { type: Number, default: null },
+    powerKw: { type: Number },
+    lastStatusTimestamp: { type: Date, default: Date.now }
+}, { _id: false }); // evita criar _id para cada subdocumento
+
 const ChargerSchema = new mongoose.Schema({
     name: { type: String, required: true },
     serialNumber: { type: String, required: true, unique: true },
     vendor: { type: String, required: true },
     model: { type: String, required: true },
-    status: { type: String, default: 'Available' },
+    status: { type: String, default: 'Available' }, // status geral (opcional)
     lastHeartbeat: { type: Date, default: Date.now },
     isOnline: { type: Boolean, default: false },
+
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
     description: { type: String },
     address: { type: String, required: true },
-    is24Hours: { type: Boolean, default: false }, // ✅ Novo campo
-    openingHours: { type: String }, // Exemplo: "08:00-22:00"
-    connectorType: { type: String, required: true },
-    powerKw: { type: Number, required: true },
-    pricePerKw: { type: Number, required: true }
+
+    is24Hours: { type: Boolean, default: false },
+    openingHours: { type: String }, // Ex: "08:00-22:00"
+
+    connectorType: { type: String }, // Tipo geral (Ex: CCS, Type2)
+    powerKw: { type: Number },
+    pricePerKw: { type: Number, required: true },
+
+    connectors: {
+        type: [ConnectorSchema],
+        default: []
+    }
+
 }, { timestamps: true });
 
-// ✅ Método para verificar se o carregador está aberto
 ChargerSchema.methods.isOpenNow = function () {
-    if (this.is24Hours) return true; // Se for 24h, está sempre aberto
+    if (this.is24Hours) return true;
+    if (!this.openingHours) return false;
 
-    if (!this.openingHours) return false; // Se não há horário definido, assume fechado
-
-    const [openTime, closeTime] = this.openingHours.split('-'); // Exemplo: "08:00-22:00"
-
+    const [openTime, closeTime] = this.openingHours.split('-');
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-
     const [openHour, openMinute] = openTime.split(':').map(Number);
     const [closeHour, closeMinute] = closeTime.split(':').map(Number);
 
-    const isAfterOpen = currentHour > openHour || (currentHour === openHour && currentMinute >= openMinute);
-    const isBeforeClose = currentHour < closeHour || (currentHour === closeHour && currentMinute <= closeMinute);
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const openMinutes = openHour * 60 + openMinute;
+    const closeMinutes = closeHour * 60 + closeMinute;
 
-    return isAfterOpen && isBeforeClose;
+    return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
 };
 
 module.exports = mongoose.model('Charger', ChargerSchema);

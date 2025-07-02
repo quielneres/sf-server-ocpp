@@ -9,27 +9,73 @@ const UserTransaction = require('../models/UserTransaction');
 
 const MINIMUM_BALANCE = 30; // Valor mínimo para iniciar carregamento
 
-
+/**
+ * @swagger
+ * /api/charging/history/{userId}:
+ *   get:
+ *     summary: Lista as transações de carregamento de um usuário
+ *     tags: [Carregamento]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do usuário
+ *     responses:
+ *       200:
+ *         description: Lista de transações de carregamento.
+ */
 router.get('/history/:userId', async (req, res) => {
     try {
-        const userTransactions = await UserTransaction.find({ userId: req.params.userId });
-        const idTags = userTransactions.map(ut => ut.idTag);
-        const relatedTransactions = await ChargingTransaction.find({ idTag: { $in: idTags } });
+        const transactions = await ChargingTransaction.aggregate([
+            {
+                $match: {
+                    userId: req.params.userId
+                }
+            },
+            {
+                $lookup: {
+                    from: "chargers",
+                    localField: "chargerId",
+                    foreignField: "serialNumber",
+                    as: "chargerInfo"
+                }
+            },
+            {
+                $unwind: "$chargerInfo"
+            },
+            {
+                $project: {
+                    "name": "$chargerInfo.name",
+                    "consumedKwh": "$consumedKwh",
+                    "total": {
+                        $divide: [
+                            { $multiply: [
+                                    { $subtract: ["$meterStop", "$meterStart"] },
+                                    { $divide: ["$chargerInfo.pricePerKw", 1000] }
+                                ]},
+                            1
+                        ]
+                    },
+                    "date": "$startTime" // Inclui o campo de data para ordenação
+                }
+            },
+            {
+                $sort: { date: -1 } // Ordena por data decrescente (mais recente primeiro)
+            },
+            {
+                $limit: 10 // Limita a 10 resultados
+            }
+        ]);
 
-        // Criar um array de promessas para buscar os carregadores
-        const enrichedTransactions = await Promise.all(
-            relatedTransactions.map(async (tx) => {
-                const charger = await Charger.findOne({ serialNumber: tx.chargerId });
-                return {
-                    ...tx.toObject(), // Convertendo o Mongoose doc para objeto simples
-                    chargerName: charger?.description || 'Desconhecido'
-                };
-            })
-        );
+        if (!transactions || transactions.length === 0) {
+            return res.status(404).json({ message: "Nenhuma transação encontrada" });
+        }
 
         res.json({
-            message: "Transações listadas com sucesso!",
-            transactions: enrichedTransactions
+            message: "Últimas 10 transações listadas com sucesso!",
+            transactions: transactions
         });
     } catch (error) {
         res.status(500).json({
@@ -38,7 +84,6 @@ router.get('/history/:userId', async (req, res) => {
         });
     }
 });
-
 
 /**
  * @swagger
@@ -97,13 +142,9 @@ router.get('/history/:userId', async (req, res) => {
  */
 router.post('/:id/start', async (req, res) => {
     try {
-        const { userId, latitude, longitude, targetKwh } = req.body;
+        const { userId, targetKwh, connectorId } = req.body;
         const chargerId = req.params.id;
         const client = global.ocppClients?.get(chargerId);
-
-        console.log('Charger ID:', chargerId);
-        console.log('User ID:', userId);
-        console.log('Target KWh:', targetKwh);
 
 
         // Validações iniciais
@@ -149,7 +190,7 @@ router.post('/:id/start', async (req, res) => {
         global.pendingTransactions.set(idTag, transaction);
 
         const response = await client.call('RemoteStartTransaction', {
-            connectorId: 1,
+            connectorId: connectorId || 1,
             idTag
         });
 
@@ -225,21 +266,26 @@ router.post('/:id/start', async (req, res) => {
 router.post('/:id/stop', async (req, res) => {
     try {
         const chargerId = req.params.id;
+        const { connectorId = 1 } = req.body; // fallback para 1
+
         const client = global.ocppClients.get(chargerId);
 
         if (!client) {
             return res.status(404).json({ message: `Carregador ${chargerId} não conectado.` });
         }
 
-        const transactionId = global.activeTransactions.get(chargerId);
+        // Corrigido: usar a mesma chave composta usada no StartTransaction
+        const activeKey = `${chargerId}_${connectorId}`;
+        const transactionId = global.activeTransactions.get(activeKey);
+
         if (!transactionId) {
-            return res.status(400).json({ message: "Nenhuma transação ativa encontrada para este carregador." });
+            return res.status(400).json({ message: "Nenhuma transação ativa encontrada para este carregador e conector." });
         }
 
         const response = await client.call('RemoteStopTransaction', { transactionId });
 
         if (response.status === 'Accepted') {
-            res.json({ message: "Comando para encerrar carregamento enviado com sucesso!" });
+            res.json({ message: "Comando para encerrar carregamento enviado com sucesso!", transactionId: transactionId });
         } else {
             res.status(400).json({ message: "Falha ao enviar comando para encerrar carregamento." });
         }
@@ -247,6 +293,7 @@ router.post('/:id/stop', async (req, res) => {
         res.status(500).json({ message: "Erro ao encerrar carregamento", error: error.message });
     }
 });
+
 
 
 router.get('/charging-transactions/:transactionId', async (req, res) => {
@@ -404,6 +451,74 @@ router.get('/user-charging-transactions/:userId', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+/**
+ * @swagger
+ * /api/charging/{transactionId}:
+ *   get:
+ *     summary: Obtém uma transação pelo ID
+ *     tags: [Carregamento]
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da transação
+ *     responses:
+ *       200:
+ *         description: Transação encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ChargingTransaction'
+ *       404:
+ *         description: Transação nao encontrada
+ */
+router.get('/:transactionId', async (req, res) => {
+
+    console.log('aqiiiiiiiiiiiii');
+
+    try {
+
+        const transaction = await ChargingTransaction.findOne({ transactionId: req.params.transactionId });
+
+        if (!transaction) {
+            return res.status(404).json({ message: 'Transação não encontrada.' });
+        }
+
+        const charger = await Charger.findOne({ serialNumber: transaction.chargerId });
+
+        const powerHistory = transaction.meterHistory?.map(m => m.powerKw) || [];
+        const timestamps = transaction.meterHistory?.map(m => m.timestamp) || [];
+        const energyHistory = transaction.meterHistory?.map(m => m.energyKwh) || [];
+
+        return res.json({
+            energy: transaction.consumedKwh,
+            totalTime: calculateDuration(transaction.startTime, transaction.endTime),
+            cost: (transaction.consumedKwh || 0) * (charger?.pricePerKw || 2),
+            transactionId: transaction.transactionId,
+            idTag: transaction.idTag,
+            meterStart: transaction.meterStart / 1000,
+            meterStop: transaction.meterStop / 1000,
+            timestamp: transaction.endTime,
+            status: transaction.status,
+            powerHistory,
+            energyHistory,
+            timestamps
+        });
+    } catch (error) {
+        console.error('Erro ao buscar detalhes da transação', error);
+        res.status(500).json({ message: 'Erro ao buscar detalhes da transação.' });
+    }
+});
+
+function calculateDuration(start, end) {
+    const diffMs = new Date(end) - new Date(start);
+    const minutes = Math.floor(diffMs / 60000);
+    return `${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+}
+
 
 
 module.exports = router;

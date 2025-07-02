@@ -6,11 +6,11 @@ const router = express.Router();
  * @swagger
  * /api/chargers:
  *   get:
- *     summary: Lista todos os carregadores e indica se estão abertos
+ *     summary: Lista todos os carregadores
  *     tags: [Carregadores]
  *     responses:
  *       200:
- *         description: Retorna a lista de carregadores e se estão abertos.
+ *         description: Lista de carregadores retornada com sucesso.
  *         content:
  *           application/json:
  *             schema:
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
  * @swagger
  * /api/chargers:
  *   post:
- *     summary: Cadastra um novo carregador
+ *     summary: Cadastra um novo carregador com múltiplos conectores
  *     tags: [Carregadores]
  *     requestBody:
  *       required: true
@@ -50,65 +50,53 @@ router.post('/', async (req, res) => {
     try {
         const {
             name, serialNumber, vendor, model, latitude, longitude, description,
-            address, openingHours, connectorType, powerKw, pricePerKw
+            address, openingHours, is24Hours, pricePerKw, connectors
         } = req.body;
 
-        if (!name || !serialNumber || !vendor || !model || !latitude || !longitude || !address || !openingHours || !connectorType || !powerKw || !pricePerKw) {
-            return res.status(400).json({ message: 'Todos os campos obrigatórios devem ser preenchidos.' });
+        if (!name || !serialNumber || !vendor || !model || !latitude || !longitude || !address || !connectors || connectors.length === 0) {
+            return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
         }
 
-        const existingCharger = await Charger.findOne({ serialNumber });
-        if (existingCharger) {
-            return res.status(400).json({ message: 'Já existe um carregador com este serialNumber.' });
+        const existing = await Charger.findOne({ serialNumber });
+        if (existing) {
+            return res.status(400).json({ message: 'Carregador já existente com este serialNumber.' });
         }
 
         const newCharger = new Charger({
             name, serialNumber, vendor, model, latitude, longitude, description,
-            address, openingHours, connectorType, powerKw, pricePerKw
+            address, openingHours, is24Hours, pricePerKw,
+            connectors
         });
 
         await newCharger.save();
-        res.status(201).json({ message: 'Carregador cadastrado com sucesso!', charger: newCharger });
+        res.status(201).json({ message: 'Carregador criado com sucesso', charger: newCharger });
     } catch (error) {
-        console.error('❌ Erro ao cadastrar carregador:', error);
+        console.error('❌ Erro ao criar carregador:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
 });
 
 router.post('/:chargerId/update', async (req, res) => {
     try {
-
-        let charger = await Charger.findOne({ _id: req.params.chargerId });
-        if (!charger) {
-            return res.status(400).json({ message: 'Carregador nao encontrado.' });
-        }
+        const charger = await Charger.findById(req.params.chargerId);
+        if (!charger) return res.status(404).json({ message: 'Carregador não encontrado.' });
 
         const {
             name, serialNumber, vendor, model, latitude, longitude, description,
-            address, openingHours, connectorType, powerKw, pricePerKw
+            address, openingHours, is24Hours, connectors
         } = req.body;
 
-        if (!name || !serialNumber || !vendor || !model || !latitude || !longitude || !address || !openingHours || !connectorType || !powerKw || !pricePerKw) {
-            return res.status(400).json({ message: 'Todos os campos obrigatórios devem ser preenchidos.' });
+        if (!name || !serialNumber || !vendor || !model || !latitude || !longitude || !address || !connectors || connectors.length === 0) {
+            return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
         }
 
-        charger.name = name;
-        charger.serialNumber = serialNumber;
-        charger.vendor = vendor;
-        charger.model = model;
-        charger.latitude = latitude;
-        charger.longitude = longitude;
-        charger.description = description;
-        charger.address = address;
-        charger.openingHours = openingHours;
-        charger.connectorType = connectorType;
-        charger.powerKw = powerKw;
-        charger.pricePerKw = pricePerKw;
+        Object.assign(charger, {
+            name, serialNumber, vendor, model, latitude, longitude, description,
+            address, openingHours, is24Hours, connectors
+        });
 
         await charger.save();
-        res.status(201).json({ message: 'Carregador atualizado com sucesso!', charger: charger });
-
-
+        res.status(200).json({ message: 'Carregador atualizado com sucesso', charger });
     } catch (error) {
         console.error('❌ Erro ao atualizar carregador:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
@@ -119,7 +107,7 @@ router.post('/:chargerId/update', async (req, res) => {
  * @swagger
  * /api/chargers/{id}:
  *   get:
- *     summary: Busca um carregador pelo ID
+ *     summary: Busca um carregador por ID
  *     tags: [Carregadores]
  *     parameters:
  *       - in: path
@@ -127,22 +115,20 @@ router.post('/:chargerId/update', async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: O ID do carregador a ser buscado
+ *         description: ID do carregador
  *     responses:
  *       200:
- *         description: Carregador encontrado com sucesso.
+ *         description: Carregador encontrado
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Charger'
  *       404:
- *         description: Carregador não encontrado.
- *       500:
- *         description: Erro interno do servidor.
+ *         description: Carregador não encontrado
  */
 router.get('/:id', async (req, res) => {
     try {
-        const charger = await Charger.findOne({ _id: req.params.id });
+        const charger = await Charger.findById(req.params.id);
         if (!charger) return res.status(404).json({ message: 'Carregador não encontrado' });
         res.json(charger);
     } catch (error) {
@@ -164,66 +150,64 @@ router.get('/:id', async (req, res) => {
  *         - latitude
  *         - longitude
  *         - address
- *         - connectorType
- *         - powerKw
- *         - pricePerKw
+ *         - connectors
  *       properties:
  *         _id:
  *           type: string
- *           example: "65bd87a1e7b4e623a4f927e9"
  *         name:
  *           type: string
- *           example: "Carregador Shopping Center"
  *         serialNumber:
  *           type: string
- *           example: "EV12345"
  *         vendor:
  *           type: string
- *           example: "EVCompany"
  *         model:
  *           type: string
- *           example: "EVChargerX"
  *         status:
  *           type: string
- *           default: "Available"
- *           example: "Charging"
+ *         isOnline:
+ *           type: boolean
  *         lastHeartbeat:
  *           type: string
  *           format: date-time
- *           example: "2025-02-02T19:49:50.011Z"
- *         isOnline:
- *           type: boolean
- *           example: true
  *         latitude:
  *           type: number
- *           example: -23.55052
  *         longitude:
  *           type: number
- *           example: -46.633308
  *         description:
  *           type: string
- *           example: "Ponto de carregamento rápido para veículos elétricos"
  *         address:
  *           type: string
- *           example: "Av. Paulista, 1000 - São Paulo, SP"
  *         is24Hours:
  *           type: boolean
- *           example: false
  *         openingHours:
  *           type: string
  *           example: "08:00-22:00"
- *         isOpenNow:
- *           type: boolean
- *           example: true
- *         connectorType:
- *           type: string
- *           example: "CCS Type 2"
- *         powerKw:
- *           type: number
- *           example: 40
- *         pricePerKw:
- *           type: number
- *           example: 2.00
+ *         connectors:
+ *           type: array
+ *           items:
+ *             type: object
+ *             required: [connectorId, type, powerKw, pricePerKw]
+ *             properties:
+ *               connectorId:
+ *                 type: number
+ *                 example: 1
+ *               status:
+ *                 type: string
+ *                 example: "Available"
+ *               type:
+ *                 type: string
+ *                 example: "CCS Type 2"
+ *               powerKw:
+ *                 type: number
+ *                 example: 22
+ *               pricePerKw:
+ *                 type: number
+ *                 example: 1.50
+ *               currentTransactionId:
+ *                 type: number
+ *               lastStatusTimestamp:
+ *                 type: string
+ *                 format: date-time
  */
 
 module.exports = router;

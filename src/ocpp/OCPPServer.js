@@ -1,24 +1,18 @@
 const { RPCServer } = require('ocpp-rpc');
 const Charger = require('../models/Charger');
 const { handleMeterValues } = require("./handlers");
-const amqp = require('amqplib');
 const ChargingTransaction = require('../models/ChargingTransaction');
 const Wallet = require('../models/Wallet');
 const { addLog } = require("../routes/logs");
 
 class OCPPServer {
     constructor() {
-        //const port = process.env.PORT || 3000;
         const port = 3000;
-
-        // const port = process.env.PORT || process.env.OCPP_PORT || 3000;
 
         this.server = new RPCServer({
             protocols: ['ocpp1.6'],
             strictMode: true,
         });
-
-        // this.initRabbitMQ();
 
         this.chargers = new Map();
         global.ocppClients = new Map();
@@ -32,10 +26,18 @@ class OCPPServer {
             let charger = await Charger.findOne({ serialNumber: client.identity });
 
             if (charger) {
+                charger.isOnline = true;
+                charger.lastHeartbeat = new Date();
+                // Marca todos conectores como Available ao conectar
+                if (Array.isArray(charger.connectors)) {
+                    charger.connectors = charger.connectors.map(connector => ({
+                        ...connector,
+                        status: 'Available'
+                    }));
+                }
                 charger.status = 'Available';
                 await charger.save();
             }
-
 
             client.handle('BootNotification', async ({ params }) => {
                 console.info(`📡 BootNotification de ${client.identity}:`, params);
@@ -53,11 +55,14 @@ class OCPPServer {
                             serialNumber: client.identity,
                             vendor: params.chargePointVendor,
                             model: params.chargePointModel,
+                            isOnline: true,
                             status: 'Available',
                             lastHeartbeat: new Date(),
-                            isOnline: true
+                            connectors: []
                         });
                     } else {
+                        charger.vendor = params.chargePointVendor;
+                        charger.model = params.chargePointModel;
                         charger.lastHeartbeat = new Date();
                         charger.isOnline = true;
                     }
@@ -76,9 +81,20 @@ class OCPPServer {
 
                 try {
                     const charger = await Charger.findOne({ serialNumber: client.identity });
-                    if (charger) {
-                        charger.status = params.status;
+                    if (charger && Array.isArray(charger.connectors)) {
+                        const index = charger.connectors.findIndex(c => c.connectorId === params.connectorId);
+                        if (index !== -1) {
+                            charger.connectors[index].status = params.status;
+                        } else {
+                            charger.connectors.push({
+                                connectorId: params.connectorId,
+                                status: params.status,
+                                type: 'Desconhecido',
+                                powerKw: 0
+                            });
+                        }
                         charger.lastHeartbeat = new Date();
+                        charger.status = params.status;
                         await charger.save();
                     }
                 } catch (error) {
@@ -101,14 +117,13 @@ class OCPPServer {
                     transaction.meterStart = typeof params.meterStart === 'number' ? params.meterStart : 0;
                     transaction.startTime = new Date();
                     transaction.status = 'Active';
+                    transaction.connectorId = params.connectorId;
                     await transaction.save();
 
-                    // Remove do cache após o início bem-sucedido
                     global.pendingTransactions?.delete(params.idTag);
 
                     const transactionId = transaction.transactionId;
-
-                    global.activeTransactions.set(client.identity, transactionId);
+                    global.activeTransactions.set(`${client.identity}_${params.connectorId}`, transactionId);
                     console.info(`✅ Transação iniciada e salva no banco: ${transactionId}`);
 
                     return {
@@ -138,7 +153,6 @@ class OCPPServer {
             client.handle('StopTransaction', async ({ params }) => {
                 console.info(`🛑 StopTransaction de ${client.identity}:`, params);
 
-                // const transactionId = global.activeTransactions.get(client.identity);
                 const transactionId = params.transactionId;
                 if (!transactionId) {
                     console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando StopTransaction.`);
@@ -152,21 +166,16 @@ class OCPPServer {
                         return { idTagInfo: { status: "Rejected" } };
                     }
 
-                    // Atualiza status e horário de término
                     transaction.endTime = new Date();
                     transaction.status = 'Completed';
 
-                    // Registra o meterStop diretamente da requisição
                     if (typeof params.meterStop === 'number') {
                         transaction.meterStop = params.meterStop || 0;
                     }
 
-                    // Calcula consumo
                     if (transaction.meterStart != null && transaction.meterStop != null) {
                         transaction.consumedKwh = (transaction.meterStop - transaction.meterStart) / 1000;
                         console.log(`🔋 Consumo total: ${transaction.consumedKwh.toFixed(3)} kWh`);
-                    } else {
-                        console.warn(`⚠️ Não foi possível calcular consumo — meterStart ou meterStop ausente.`);
                     }
 
                     await transaction.save();
@@ -182,13 +191,11 @@ class OCPPServer {
                             wallet.balance = parseFloat((wallet.balance - amountToDeduct).toFixed(2));
                             await wallet.save();
                             console.log(`💰 R$${amountToDeduct} debitado da carteira do ID Tag ${transaction.idTag}`);
-                        } else {
-                            console.warn(`⚠️ Carteira não encontrada para ID Tag ${transaction.idTag}`);
                         }
                     }
 
-                    // Remove transação ativa da memória
-                    global.activeTransactions.delete(client.identity);
+                    global.activeTransactions.delete(`${client.identity}_${transaction.connectorId}`);
+
                 } catch (error) {
                     console.error(`❌ Erro ao finalizar transação:`, error);
                 }
@@ -214,64 +221,43 @@ class OCPPServer {
             });
 
             client.handle('MeterValues', async ({ params }) => {
-                // console.info(`⚡ MeterValues recebido de ${client.identity}:`, params.meterValue?.[0]?.sampledValue);
-
-                const transactionId = global.activeTransactions.get(client.identity);
+                const key = `${client.identity}_${params.connectorId}`;
+                const transactionId = global.activeTransactions.get(key);
                 if (!transactionId) {
-                    console.warn(`⚠️ Nenhuma transação ativa para ${client.identity}. Ignorando MeterValues.`);
+                    console.warn(`⚠️ Nenhuma transação ativa para ${key}. Ignorando MeterValues.`);
                     return {};
                 }
 
                 try {
                     const transaction = await ChargingTransaction.findOne({ transactionId });
-                    if (!transaction) {
-                        console.warn(`⚠️ Transação ${transactionId} não encontrada no banco de dados`);
-                        return {};
-                    }
+                    if (!transaction) return {};
 
-                    const meterEntries = params.meterValue || params.meterValues || [];
+                    const meterEntries = params.meterValue || [];
                     let lastValidEntry = null;
                     let energySample = null;
 
                     for (const entry of meterEntries) {
-                        const samples = entry.sampledValue || entry.values || [];
-                        const candidate = samples.find(
-                            v => v.measurand === 'Energy.Active.Import.Register' && ['Wh', 'kWh'].includes(v.unit)
-                        );
+                        const samples = entry.sampledValue || [];
+                        const candidate = samples.find(v => v.measurand === 'Energy.Active.Import.Register' && ['Wh', 'kWh'].includes(v.unit));
                         if (candidate && !isNaN(parseFloat(candidate.value))) {
                             energySample = candidate;
                             lastValidEntry = entry;
                         }
                     }
 
-                    if (!energySample || !lastValidEntry) {
-                        console.warn(`⚠️ Nenhuma leitura válida de energia encontrada para ${client.identity}`);
-                        return {};
-                    }
+                    if (!energySample || !lastValidEntry) return {};
 
                     let currentMeterKwh = parseFloat(energySample.value);
                     if (energySample.unit === 'Wh') {
                         currentMeterKwh = currentMeterKwh / 1000;
                     }
 
-                    console.log(`🔋 Leitura atual: ${currentMeterKwh} kWh`);
-
-                    if (transaction.meterStart == null) {
-                        console.warn(`⚠️ meterStart não definido para transação ${transactionId}.`);
-                        return {};
-                    }
-
                     transaction.lastMeterValue = currentMeterKwh;
-
                     const consumedKwh = currentMeterKwh - (transaction.meterStart / 1000);
                     transaction.consumedKwh = consumedKwh;
-
-                    console.log(`🔋 Transação ${transactionId} consumo atual: ${consumedKwh.toFixed(3)}kWh`);
-
                     await transaction.save();
 
                     if (transaction.targetKwh && consumedKwh >= transaction.targetKwh) {
-                        console.log(`🎯 Meta de ${transaction.targetKwh}kWh atingida! Enviando comando de parada.`);
                         await client.call('RemoteStopTransaction', { transactionId });
                     }
 
@@ -281,42 +267,35 @@ class OCPPServer {
                         timestamp: lastValidEntry.timestamp || new Date().toISOString(),
                         energyKwh: currentMeterKwh,
                         consumedKwh,
-                        sampledValues: lastValidEntry.sampledValue || lastValidEntry.values || []
+                        sampledValues: lastValidEntry.sampledValue || []
                     });
 
                 } catch (error) {
-                    console.error(`❌ Erro no processamento de MeterValues para ${client.identity}:`, error);
+                    console.error(`❌ Erro no processamento de MeterValues:`, error);
                 }
-
 
                 return {};
             });
 
-
-
             client.on('close', async () => {
                 console.info(`🔌 Conexão encerrada: ${client.identity}`);
-
                 try {
-                    let charger = await Charger.findOne({ serialNumber: client.identity });
+                    const charger = await Charger.findOne({ serialNumber: client.identity });
                     if (charger) {
                         charger.isOnline = false;
                         await charger.save();
                     }
                 } catch (error) {
-                    console.error(`❌ Erro ao atualizar desconexão de ${client.identity}:`, error);
+                    console.error(`❌ Erro ao atualizar desconexão:`, error);
                 }
-
                 this.chargers.delete(client.identity);
             });
         });
 
         this.server.listen(port, '0.0.0.0', { path: '/ocpp' }, () => {
             console.log(`🚀 Servidor OCPP rodando em wss://e2n.online:${port}/ocpp`);
-        })
-
+        });
     }
-
 }
 
 module.exports = OCPPServer;
